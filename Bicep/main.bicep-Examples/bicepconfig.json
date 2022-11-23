@@ -1,0 +1,27 @@
+// --------------------------------------------------------------------------------
+// NOTE: To make this pipeline work, your service principal may need to be in the
+//   "acr pull" role for the container registry.
+// --------------------------------------------------------------------------------
+// To list the available bicep container registry image tags:
+//   $registryName = 'lllbicepregistry'
+//   Write-Host "Scanning for repository tags in $registryName"
+//   az acr repository list --name $registryName -o tsv | Foreach-Object { 
+//     $thisModule = $_
+//     az acr repository show-tags --name $registryName --repository $_ --output tsv  | Foreach-Object { 
+//       Write-Host "$thisModule`:$_"
+//     }
+//   }
+// --------------------------------------------------------------------------------
+// To reference the latest bicep container registry image tags:
+//   module storageModule 'br/mybicepmodules:storageaccount:2022-09-04.425' = {
+// --------------------------------------------------------------------------------
+{
+    "moduleAliases": {
+        "br": {
+            "mybicepmodules": {
+                "registry": "lllbicepregistry.azurecr.io",
+                "modulePath": "bicep"
+            }
+        }
+    }
+}

@@ -1,0 +1,134 @@
+# ----------------------------------------------------------------------------------------------------
+# Template to build Azure Website and create artifacts
+# ----------------------------------------------------------------------------------------------------
+parameters: 
+- name: variableGroupName
+  default:  'myVariableGroup'
+- name: environmentName
+  default:  'DEV'
+- name: folderName
+  default: ''
+- name: projectName
+  default: ''
+
+# ------------------------------------------------------------------------------------------------------------------------
+jobs:
+- deployment: Build${{ parameters.environmentName }}Website
+  displayName: Initialize ${{ parameters.environmentName }}Build Website
+  environment: ${{ parameters.environmentName }}
+
+- job: Build${{ parameters.environmentName }}WebApp
+  displayName: Build ${{ parameters.environmentName }} Web App
+
+  variables:
+    - group: ${{ parameters.variableGroupName }}
+    - name: folderName
+      value: '${{ parameters.folderName }}'
+    - name: projectName
+      value: '${{ parameters.projectName }}'
+    - name: solution
+      value: '${{ parameters.projectName }}.sln'
+    - name: buildPlatform
+      value: 'Any CPU'
+    - name: buildConfiguration
+      value: 'Release'
+    - name: appVersion
+      value: $(Build.BuildNumber)
+    - name: rootDirectory
+      value: '$(System.DefaultWorkingDirectory)/$(folderName)'
+    - name: workingDirectory
+      value: '$(System.DefaultWorkingDirectory)/$(folderName)/$(projectName)'
+
+  steps:
+  - bash: |
+      runDateTime=$(echo $(date '+%Y%m%d-%H%M%S'))
+      echo "##vso[task.setvariable variable=runDateTime]$runDateTime"
+      echo "runDateTime=$runDateTime"
+    displayName: 'Create Variables'
+    continueOnError: true
+
+  - task: CmdLine@2
+    inputs:
+      script: |
+        echo "runDateTime=$(runDateTime)"
+        echo "solution=$(solution)"
+        echo "rootDirectory=$(rootDirectory)"
+        echo "workingDirectory=$(workingDirectory)"
+        echo "buildConfiguration=$(buildConfiguration)"
+        echo "buildPlatform=$(buildPlatform)"
+        echo "Build.BuildNumber=$(Build.BuildNumber)"
+        echo "Build.BuildId=$(Build.BuildId)"
+        echo "Build.ArtifactStagingDirectory=$(Build.ArtifactStagingDirectory)"
+        echo "System.DefaultWorkingDirectory=$(System.DefaultWorkingDirectory)"
+        echo "Build.SourceVersion=$(Build.SourceVersion)"
+        echo "Build.SourcesDirectory=$(Build.SourcesDirectory)"
+        echo "appPrefix=$(appPrefix)"
+        echo "Directory of System.DefaultWorkingDirectory:"
+        tree $(System.DefaultWorkingDirectory)
+        dir $(System.DefaultWorkingDirectory) /s
+    displayName: 'Display Variables'
+
+  - task: NuGetToolInstaller@1
+
+  - task: NuGetCommand@2
+    inputs:
+      command: 'restore'
+      restoreSolution: '$(rootDirectory)\$(solution)'
+    continueOnError: true
+
+  - script: |
+      echo -e -n "{\"buildDate\":\"$(runDateTime)\",\"buildNumber\":\"$(Build.BuildNumber)\",\"buildId\":\"$(Build.BuildId)\",\"branchName\":\"$(Build.SourceBranchName)\",\"commitHash\":\"$(Build.SourceVersion)\"}" > "$(rootDirectory)\buildinfo.json"
+    displayName: "Put Build Details in buildinfo.json"
+    continueOnError: true
+  
+  - task: Assembly-Info-NetCore@3
+    displayName: 'Update Assembly Version'
+    inputs:
+      Path: '$(Build.SourcesDirectory)'
+      FileNames: '$(rootDirectory)\*.csproj'
+      InsertAttributes: true
+      FileEncoding: 'auto'
+      WriteBOM: true
+      FailOnWarning: true
+      PackageVersion: '$(appVersion)'
+      UpdateBuildNumber: '$(appVersion)'
+      AddBuildTag: 'v$(appVersion)'
+    continueOnError: true
+    
+  - task: VSBuild@1
+    displayName: 'Build Application'
+    inputs:
+      solution: '$(rootDirectory)\$(solution)'
+      msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:SkipInvalidConfigurations=true'
+      platform: '$(buildPlatform)'
+      configuration: '$(buildConfiguration)'
+
+  - task: VSTest@2
+    displayName: 'Test Application'
+    inputs:
+      searchFolder: '$(rootDirectory)'
+      platform: '$(buildPlatform)'
+      configuration: '$(buildConfiguration)'
+      
+  - task: DotNetCoreCLI@2
+    displayName: "DotNet Publish"
+    inputs:
+      command: 'publish'
+      projects: '$(rootDirectory)\$(solution)'
+      publishWebProjects: true
+      zipAfterPublish: true
+      arguments: --self-contained false --output $(System.DefaultWorkingDirectory)\website_output
+
+  - task: PublishPipelineArtifact@1
+    displayName: 'Publish Artifacts'
+    inputs:
+      targetPath: $(System.DefaultWorkingDirectory)\website_output
+      artifact: websitedrop
+      publishLocation: 'pipeline'
+
+  - task: CmdLine@2
+    inputs:
+      script: |
+        tree $(System.DefaultWorkingDirectory)
+        tree $(Build.ArtifactStagingDirectory)
+    displayName: 'Display Directory Tree'

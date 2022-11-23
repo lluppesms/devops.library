@@ -1,0 +1,34 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline to build Test Utility; compiles for both Windows (x64) and Linux; copies EXE to storage for downloading ease
+# ------------------------------------------------------------------------------------------------------------------------
+parameters:
+- name: environments
+  type: object
+  default: ['DEV']
+- name: variableGroupName
+  default: 'myVariableGroupName'
+
+# ------------------------------------------------------------------------------------------------------------------------
+stages:
+- stage: BuildTester
+  displayName: Build Tester
+  jobs:
+  #- template: templates/secure-devops-template.yml
+  #  parameters:
+  #    variableGroupName: ${{ parameters.variableGroupName }}
+  #    environmentName: 'DEV'
+
+  - template: templates/console-app-build-template.yml
+    parameters:
+      variableGroupName: ${{ parameters.variableGroupName }}
+      environmentName: 'DEV'
+
+# ----------------------------------------------------------------------------------------------------
+- ${{ each environmentName in parameters.environments }} :
+  - stage: DeployTester${{ environmentName }}
+    displayName: Deploy ${{ environmentName }} Tester
+    jobs:
+    - template: templates/console-app-deploy-template.yml
+      parameters:
+        variableGroupName: ${{ parameters.variableGroupName }}
+        environmentName: ${{ environmentName }}

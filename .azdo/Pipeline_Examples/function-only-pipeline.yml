@@ -1,0 +1,33 @@
+# ----------------------------------------------------------------------------------------------------
+# Pipeline to deploy a Function App
+# ----------------------------------------------------------------------------------------------------
+# Note: This pipeline needs a variable group "FunctionDemo"
+#  See ../Docs/Create-Variable-Group.md for details
+# ----------------------------------------------------------------------------------------------------
+name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
+pool:
+  vmImage: windows-latest
+
+# ----------------------------------------------------------------------------------------------------
+trigger:
+  # since this repo has both AzDO and GHA pipelines, nothing is run automatically...
+  - none
+  # batch: true
+  # branches:
+  #   include: 
+  #     - main
+  # paths:
+  #   include:
+  #     - FunctionApp
+  #   exclude: 
+  #     - '**/*.yml'
+  #     - '**/*.yaml'
+  #     - '**/*.bicep'
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- template: pipes/function-only-pipe.yml
+  parameters:
+    variableGroupName: 'FunctionDemo'
+    environments: ['DEMO']  # ['DEV','PROD'] ['DEV','QA'] or ['DEV','QA','PROD']
+    projectDirectory: 'src/FunctionApp'

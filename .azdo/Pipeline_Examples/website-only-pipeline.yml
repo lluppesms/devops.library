@@ -1,0 +1,31 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline to build and deploy Website Only
+# See ../Docs/Create-Variable-Group.md for info about variable group "BlazorServerDemo"
+# ------------------------------------------------------------------------------------------------------------------------
+name: $(Build.DefinitionName).$(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
+
+trigger:
+  batch: true
+  branches:
+    include:
+    - main
+  paths:
+    include:
+      - 'Blazor.Server.Demo/*'
+    exclude: 
+      - '**/*.yml'
+      - '**/*.bicep'
+      - '**/*.md'
+
+pool:
+  vmImage: windows-latest
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- template: pipes/website-only-pipe.yml
+  parameters:
+    variableGroupName: 'BlazorDemo'
+    folderName: 'Blazor.Server.Demo'
+    projectName: 'Blazor.Server.Demo'
+    webAppName: 'bsa'
+    environments: ['DEMO']  # ['DEV','PROD'] ['DEV','QA'] or ['DEV','QA','PROD']

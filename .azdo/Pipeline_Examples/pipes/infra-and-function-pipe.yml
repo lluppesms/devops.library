@@ -1,0 +1,48 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline Template to build and deploy Azure Resources and Application
+# ------------------------------------------------------------------------------------------------------------------------
+parameters:
+- name: environments
+  type: object
+  default: ['DEV']
+- name: variableGroupName
+  default: 'myVariableGroupName'
+- name: projectDirectory
+  default: 'src/myProjectDirectory'
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- stage: BuildApplication
+  displayName: Build Application
+  jobs:
+  #- template: templates/secure-devops-template.yml
+  #  parameters:
+  #    variableGroupName: ${{ parameters.variableGroupName }}
+  #    environmentName: 'DEV'
+  - template: templates/build-function-template.yml
+    parameters:
+      variableGroupName: ${{ parameters.variableGroupName }}
+      environmentName: 'DEV'
+      projectDirectory: ${{ parameters.projectDirectory }}
+
+# ----------------------------------------------------------------------------------------------------
+- ${{ each environmentName in parameters.environments }} :
+  - stage: CreateInfrastructure${{ environmentName }}
+    displayName: ${{ environmentName }} Infrastructure
+    dependsOn: BuildApplication
+    condition: succeeded('BuildApplication')
+    jobs:
+    - template: templates/create-infra-template.yml
+      parameters:
+        variableGroupName: ${{ parameters.variableGroupName }}
+        environmentName: ${{ environmentName }}
+
+  - stage: Deploy${{ environmentName }}App
+    displayName: Deploy ${{ environmentName }} App
+    dependsOn: CreateInfrastructure${{ environmentName }}
+    condition: succeeded('CreateInfrastructure${{ environmentName }}')
+    jobs:
+    - template: templates/deploy-function-template.yml
+      parameters:
+        variableGroupName: ${{ parameters.variableGroupName }}
+        environmentName: ${{ environmentName }}

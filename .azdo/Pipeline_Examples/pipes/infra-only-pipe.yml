@@ -1,0 +1,28 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline Template to deploy Azure Resources Only
+# ------------------------------------------------------------------------------------------------------------------------
+parameters:
+- name: environments
+  type: object
+  default: ['DEMO']
+- name: variableGroupName
+  default: 'myVariableGroupName'
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+#- stage: ScanApplication
+#  displayName: Scan Application
+#  jobs:
+#  - template: templates/secure-devops-template.yml
+#    parameters:
+#      variableGroupName: ${{ parameters.variableGroupName }}
+#      environmentName: 'DEV'
+
+- ${{ each environmentName in parameters.environments }} :
+  - stage: CreateInfrastructure${{ environmentName }}
+    displayName: ${{ environmentName }} Infrastructure
+    jobs:
+    - template: templates/create-infra-template.yml
+      parameters:
+        variableGroupName: ${{ parameters.variableGroupName }}
+        environmentName: ${{ environmentName }}

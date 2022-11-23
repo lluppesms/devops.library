@@ -1,0 +1,22 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline to deploy Logic Application infrastructure AND deploy the Function App
+# ------------------------------------------------------------------------------------------------------------------------
+# Note: This pipeline needs a variable group "LogicAppDemo"
+#  See ../Docs/Create-Variable-Group.md for details
+# ------------------------------------------------------------------------------------------------------------------------
+name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
+pool:
+  vmImage: 'ubuntu-latest'
+
+# ----------------------------------------------------------------------------------------------------
+trigger:
+  branches:
+    include:
+    - main
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- template: pipes/infra-and-logicappstd-pipe.yml
+  parameters:
+    variableGroupName: 'LogicAppDemo'
+    environments: ['DEMO']  # ['DEV','PROD'] ['DEV','QA'] or ['DEV','QA','PROD']

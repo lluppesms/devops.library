@@ -1,0 +1,69 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline to deploy Bicep Container Registry in Azure
+# ------------------------------------------------------------------------------------------------------------------------
+# This pipeline needs four variables defined in AzDO:
+#  subscriptionName: 'yourSubscriptionName'
+#  registryName:     'yourContainerRegistryName'
+#  resourceGroupName: 'yourResourceGroupName'
+#  location:          'eastus'
+# ------------------------------------------------------------------------------------------------------------------------
+name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
+
+trigger:
+  - none
+
+pool:
+  vmImage: ubuntu-latest
+
+jobs:
+- deployment: CreateInfra
+  displayName: Initialize Create Infra
+  environment: 'DEV'
+
+- job: CreateInfraJob
+  displayName: Create Infrastructure
+  variables:
+    - name: bicepDirectory
+      value: '.infrastructure/'
+    - name: bicepFileName
+      value: 'containerregistry.bicep'
+
+  steps:
+  - bash: |
+      runDateTime=$(echo $(date '+%Y%m%d-%H%M%S'))
+      echo "##vso[task.setvariable variable=runDateTime]$runDateTime"
+      echo "runDateTime=$runDateTime"
+    displayName: 'Create Variables'
+
+  - bash: |
+      echo "resourceGroupName=$(resourceGroupName)"
+      echo "subscriptionName=$(subscriptionName)"
+      echo "bicepDirectory=$(bicepDirectory)"
+      echo "bicepFileName=$(bicepFileName)"
+      echo "runDateTime=$(runDateTime)"
+    displayName: 'Display Variables'
+    continueOnError: true
+
+  - task: AzureCLI@2
+    displayName: 'Create Resource Group'
+    inputs:
+      azureSubscription: $(subscriptionName)
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: az group create --name $(resourceGroupName) --location $(location)
+
+  - task: AzureResourceManagerTemplateDeployment@3
+    displayName: 'Publish Bicep Resources'
+    inputs:
+      csmFile: $(bicepDirectory)$(bicepFileName)
+      overrideParameters: >
+        -registryName $(registryName) 
+        -location $(location) 
+        -runDateTime $(runDateTime)
+      deploymentScope: 'Resource Group'
+      azureResourceManagerConnection: $(subscriptionName)
+      action: 'Create Or Update Resource Group'
+      resourceGroupName: $(resourceGroupName)
+      location: $(location)
+      templateLocation: 'Linked artifact'
+      deploymentMode: 'Incremental'

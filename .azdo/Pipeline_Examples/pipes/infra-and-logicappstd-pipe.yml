@@ -1,0 +1,46 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline Template to build and deploy Azure Resources and Application
+# ------------------------------------------------------------------------------------------------------------------------
+parameters:
+- name: environments
+  type: object
+  default: ['DEMO']
+- name: variableGroupName
+  default: 'myVariableGroupName'
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- stage: BuildApplication
+  displayName: Build Application
+  jobs:
+  #- template: templates/secure-devops-template.yml
+  #  parameters:
+  #    variableGroupName: ${{ parameters.variableGroupName }}
+  #    environmentName: 'DEV'
+
+  - template: templates/build-logicstd-template.yml
+    parameters:
+      variableGroupName: ${{ parameters.variableGroupName }}
+      environmentName: 'DEMO'
+
+# ----------------------------------------------------------------------------------------------------
+- ${{ each environmentName in parameters.environments }} :
+  - stage: Deploy${{ environmentName }}Infra
+    displayName: ${{ environmentName }} Infra
+    dependsOn: BuildApplication
+    condition: succeeded('BuildApplication')
+    jobs:
+    - template: templates/create-infra-template.yml
+      parameters:
+        variableGroupName: ${{ parameters.variableGroupName }}
+        environmentName: ${{ environmentName }}
+
+  - stage: Deploy${{ environmentName }}App
+    displayName: ${{ environmentName }} App
+    dependsOn: Deploy${{ environmentName }}Infra
+    condition: succeeded('Deploy${{ environmentName }}Infra')
+    jobs:
+    - template: templates/deploy-logicstd-template.yml
+      parameters:
+        variableGroupName: ${{ parameters.variableGroupName }}
+        environmentName: ${{ environmentName }}

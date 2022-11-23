@@ -1,0 +1,53 @@
+# ----------------------------------------------------------------------------------------------------
+# Template to deploy a pre-built Azure Function artifact to one environment
+# ----------------------------------------------------------------------------------------------------
+parameters: 
+- name: variableGroupName
+  default:  'myVariableGroup'
+- name: environmentName
+  default:  'DEV'
+
+# ----------------------------------------------------------------------------------------------------
+jobs:
+- deployment: InitializeDeploy${{ parameters.environmentName }}Function
+  displayName: Initialize Deploy ${{ parameters.environmentName }} Function
+  environment: ${{ parameters.environmentName }}
+
+- job: Deploy${{ parameters.environmentName }}Function
+  displayName: Deploy ${{ parameters.environmentName }} Function
+  variables:
+    - group: ${{ parameters.variableGroupName }}
+    - name: environmentName
+      value: ${{ parameters.environmentName }}
+
+  steps:
+  - bash: |
+      functionAppName=$(echo "$(appName)-$(functionName)-$(environmentName)" | tr '[:upper:]' '[:lower:]')
+      echo "##vso[task.setvariable variable=functionAppName]$functionAppName"
+    displayName: 'Create Variables'
+
+  - task: DownloadPipelineArtifact@2
+    displayName: 'Download Pipeline Artifacts'
+    inputs:
+      artifact: drop
+
+  - task: CmdLine@2
+    inputs:
+      script: |
+        echo "serviceConnectionName=$(serviceConnectionName)"
+        echo "subscriptionName=$(subscriptionName)"
+        echo "environmentName=$(environmentName)"
+        echo "functionAppName=$(functionAppName)"
+        echo "Directory of pipeline workspace:"
+        tree $(Pipeline.Workspace)
+    displayName: 'Display Variables and Tree'
+    continueOnError: true
+
+  - task: AzureFunctionApp@1
+    displayName: 'Function App Deploy'
+    retryCountOnTaskFailure: 2
+    inputs:
+      azureSubscription: $(subscriptionName)
+      appType: functionAppLinux
+      appName: $(functionAppName)
+      package: $(Pipeline.Workspace)/*.zip

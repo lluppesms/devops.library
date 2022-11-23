@@ -1,0 +1,30 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline to build and deploy Azure Resources and Application
+# See readme file for info about variable group "BlazorServerDemo"
+# ------------------------------------------------------------------------------------------------------------------------
+name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
+
+trigger:
+  #- none
+  batch: true
+  branches:
+    include:
+      - main
+    exclude:
+      - '**/*.md'
+  paths:
+    include:
+      - 'Blazor.Server.Demo/*'
+
+pool:
+  vmImage: 'windows-latest'
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- template: pipes/infra-and-website-pipe.yml
+  parameters:
+    variableGroupName: 'BlazorDemo'
+    folderName: 'Blazor.Server.Demo'
+    projectName: 'Blazor.Server.Demo'
+    webAppName: 'bsa'
+    environments: ['DEMO']  # ['DEV','PROD'] ['DEV','QA'] or ['DEV','QA','PROD']

@@ -1,0 +1,59 @@
+# ----------------------------------------------------------------------------------------------------
+# Template to build Azure Function and create artifacts
+# ----------------------------------------------------------------------------------------------------
+parameters: 
+- name: variableGroupName
+  default:  'myVariableGroup'
+- name: environmentName
+  default:  'DEV'
+- name: projectDirectory
+  default: 'src/myProjectDirectory'
+
+# ----------------------------------------------------------------------------------------------------
+jobs:
+- deployment: InitializeBuild${{ parameters.environmentName }}Function
+  displayName: Initialize ${{ parameters.environmentName }} Build Function
+  environment: ${{ parameters.environmentName }}
+
+- job: Build${{ parameters.environmentName }}Function
+  displayName: Build ${{ parameters.environmentName }} Function
+  
+  variables:
+    - group: ${{ parameters.variableGroupName }}
+    - name: projectDirectory
+      value: ${{ parameters.projectDirectory }}
+    - name: projectFileName
+      value: '$(projectDirectory)/*.csproj'
+
+  steps:
+  - bash: |
+      echo "Build.ArtifactStagingDirectory=$(Build.ArtifactStagingDirectory)"
+      echo "System.DefaultWorkingDirectory=$(System.DefaultWorkingDirectory)"
+      echo "Build.BuildId=$(Build.BuildId)"
+      echo "appName=$(appName)"
+      echo "projectFileName=$(projectFileName)"
+    continueOnError: true
+    displayName: 'Display Variables'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build Project'
+    inputs:
+      command: build
+      projects: $(projectFileName)
+      arguments: '--configuration Release' 
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Dotnet Publish'
+    inputs:
+      command: publish
+      publishWebProjects: false
+      zipAfterPublish: true
+      projects: $(projectFileName)
+      arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/App/'
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Save Artifacts'
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)/App/'
+      ArtifactName: App
+      publishLocation: Container                        

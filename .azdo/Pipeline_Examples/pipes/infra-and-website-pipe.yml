@@ -1,0 +1,53 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline Template to build and deploy Azure Resources and Application
+# ------------------------------------------------------------------------------------------------------------------------
+parameters:
+- name: environments
+  type: object
+  default: ['DEV'] # or ['DEV','QA'] or ['DEV','QA','PROD'] or ['DEV','QA','STG','PROD']
+- name: variableGroupName
+  default: 'myVariableGroupName'
+- name: folderName
+  default: ''
+- name: projectName
+  default: ''
+- name: webAppName
+  default: ''
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- stage: BuildApplication
+  displayName: Build App
+  jobs:
+  - template: templates/build-website-template.yml
+    parameters:
+      variableGroupName: ${{ parameters.variableGroupName }}
+      environmentName: 'DEV'
+      folderName: ${{ parameters.folderName }}
+      projectName: ${{ parameters.projectName }}
+
+# ----------------------------------------------------------------------------------------------------
+- ${{ each environmentName in parameters.environments }} :
+  - stage: Deploy${{ environmentName }}Infra
+    displayName: ${{ environmentName }} Infra
+    dependsOn: BuildApplication
+    condition: succeeded('BuildApplication')
+    jobs:
+    - template: templates/create-infra-template.yml
+      parameters:
+        variableGroupName: ${{ parameters.variableGroupName }}
+        environmentName: ${{ environmentName }}
+        webAppName: ${{ parameters.webAppName }}
+
+  - stage: Deploy${{ environmentName }}App
+    displayName: ${{ environmentName }} App
+    dependsOn: Deploy${{ environmentName }}Infra
+    condition: succeeded('Deploy${{ environmentName }}Infra')
+    jobs:
+    - template: templates/deploy-website-template.yml
+      parameters:
+        variableGroupName: ${{ parameters.variableGroupName }}
+        environmentName: ${{ environmentName }}
+        folderName: ${{ parameters.folderName }}
+        projectName: ${{ parameters.projectName }}
+        webAppName: ${{ parameters.webAppName }}
