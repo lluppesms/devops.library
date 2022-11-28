@@ -4,7 +4,7 @@ This folder contains examples of multi-stage Azure DevOps pipelines that deploy 
 
 These files are structured in three layers of files.  
 
-- **Pipelines:** The root folder contains the pipelines that are unique to a project, where you would specify variable group names and environment names that are being deployed, as well as call out the individual pipes that are being deployed.
+- **Pipelines:** The Pipeline_Examples folder contains the pipelines that are unique to a project, where you would specify variable group names and environment names that are being deployed, as well as call out the individual pipes that are being deployed.
 
   - **Pipes:** Each pipeline may call any number of "pipes", which consist of a set of predefined actions. (These files should not change between projects - or at least have very minimal changes such as additional variables if necessary).
 
