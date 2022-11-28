@@ -6,16 +6,16 @@ There are four main categories of resources in this repository:
 
 - The **.azd** folder contains files that are needed to support the "azd" command line tool in your projects. For more information, see:
 
-  - [azd Deploy Usage](.azd/AzdDeploy.md)
-  - [azd Project Compatibility](.azd/AzdDeploy.md)
+  - [azd Deploy Usage](azd/readme.md)
+  - [azd Project Compatibility](azd/AzdDeploy.md)
 
 - The **.azdo** folder contains sample YML template for Azure DevOps pipelines.  See:
 
-  - [AzDO Pipelines](.azdo/readme.md)
+  - [AzDO Pipelines](azdo/readme.md)
 
 - The **.github** folder contains sample YML template for GitHub Action workflows.  See:
 
-  - [GitHub Actions](.github/readme.md)
+  - [GitHub Actions](github/readme.md)
 
 - The **Bicep** folder contains three types of Bicep files:
 
