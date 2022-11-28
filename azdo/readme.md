@@ -10,3 +10,6 @@ These files are structured in three layers of files.
 
     - **Templates:** Each "pipe" calls any number of template files that actually perform the actions of deploying resources to Azure. These files should not change between projects.
          (These files should not change between projects - or at least have very minimal changes such as additional variables if necessary).
+
+Most of these templates rely on a variable group that is predefined.
+See - [Creating Variable Groups](CreateDevOpsVariableGroups.md).

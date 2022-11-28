@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------------------------------------------------
-# Pipeline to build IoT Simulator; compiles for both Windows (x64) and Linux; copies EXE to storage for downloading ease
+# Pipeline to build a console app; compiles for both Windows (x64) and Linux; copies EXE to storage for downloading ease
 # ------------------------------------------------------------------------------------------------------------------------
-# Note: This pipeline needs a variable group "DurableDemo"
+# Note: This pipeline needs a variable group
 #  See ../Docs/Create-Variable-Group.md for details
 # ------------------------------------------------------------------------------------------------------------------------
 trigger:
@@ -10,7 +10,7 @@ trigger:
       - main
   paths:
     include:
-      - Simulator
+      - ConsoleAppProjectFolder
     exclude: 
       - '**/*.yml'
       - '**/*.yaml'
@@ -25,5 +25,5 @@ name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
 stages:
 - template: pipes/console-app-pipe.yml
   parameters:
-    variableGroupName: 'DurableDemo'
+    variableGroupName: 'MyVariableGroupName'
     environments: ['DEMO']  # ['DEV','PROD'] ['DEV','QA'] or ['DEV','QA','PROD']
