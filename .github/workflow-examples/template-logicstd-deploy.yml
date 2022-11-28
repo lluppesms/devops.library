@@ -1,0 +1,49 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# GHA Reusable Called Workflow to deploy an already built Logic App Standard
+# ------------------------------------------------------------------------------------------------------------------------
+# You need to set up secrets in the GitHub Secrets Repository before running these workflows.
+#   See Docs\CreateGitHubSecrets\.md for details
+# ------------------------------------------------------------------------------------------------------------------------
+name: template.deploy.logicapp
+run-name: Deploy Logic App
+on:
+  workflow_call:
+    inputs:
+      envCode:
+        required: true
+        type: string
+
+# ------------------------------------------------------------------------------------------------------------------------
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: ${{ inputs.envCode }}
+
+    env:
+      artifactName: logicapp
+      generatedAppEnvName: '${{ secrets.APP_NAME }}-${{ inputs.envCode }}'
+
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: ${{ env.artifactName }}
+
+    # - name: List Files
+    #   run: 
+    #     tree ${{ env.GITHUB_ACTION_PATH }}
+    #   continue-on-error: true
+        
+    - name: Log into Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy Logic App Zip
+      uses: Azure/functions-action@v1
+      with:
+        app-name: ${{ env.generatedAppEnvName }}
+        package: .

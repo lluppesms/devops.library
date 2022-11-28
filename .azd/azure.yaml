@@ -1,0 +1,18 @@
+# ----------------------------------------------------------------------------------------------------
+# Pipeline used by the azd command
+# ----------------------------------------------------------------------------------------------------
+name: azd.deploy
+
+infra:
+    provider: bicep
+    path: infra
+    module: main
+
+pipeline:
+    provider: github
+
+services:
+  function:
+    project: src/YourSourceFolder/
+    language: csharp
+    host: function

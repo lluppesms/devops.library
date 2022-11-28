@@ -1,0 +1,46 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# GHA Workflow to deploy Function App Only
+# ------------------------------------------------------------------------------------------------------------------------
+# You need to set up secrets in the GitHub Secrets Repository before running these workflows.
+#   See Docs\CreateGitHubSecrets\.md for details
+# ------------------------------------------------------------------------------------------------------------------------
+name: deploy.functionapp
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'     
+        required: true
+        default: 'warning' 
+        type: choice
+        options:
+          - info
+          - warning
+          - debug 
+
+jobs:
+# ------------------------------------------------------------------------------------------------------------------------
+  build-app:
+    name: Build Function App
+    uses: ./.github/workflows/template-function-app-build.yml
+    secrets: inherit
+    with:
+      envCode: 'demo'
+      rootDirectory: 'src/AzureFunctionsDemo'
+
+# ------------------------------------------------------------------------------------------------------------------------
+  deploy-demo:
+    name: Deploy Function App
+    needs: build-app
+    uses: ./.github/workflows/template-function-app-deploy.yml
+    secrets: inherit
+    with:
+      envCode: 'demo'
+
+  # deploy-qa:
+  #   name: Deploy Function App
+  #   needs: deploy-demo
+  #   uses: ./.github/workflows/template-function-app-deploy.yml
+  #   secrets: inherit
+  #   with:
+  #     envCode: 'qa'

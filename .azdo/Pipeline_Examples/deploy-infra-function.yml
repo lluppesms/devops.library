@@ -1,0 +1,73 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# GHA Workflow to deploy Azure Resources and Function App
+# ------------------------------------------------------------------------------------------------------------------------
+# You need to set up secrets in the GitHub Secrets Repository before running these workflows.
+#   See Docs\CreateGitHubSecrets\.md for details
+# ------------------------------------------------------------------------------------------------------------------------
+name: deploy.infra.and.function
+on: 
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'     
+        required: true
+        default: 'warning' 
+        type: choice
+        options:
+          - info
+          - warning
+          - debug 
+
+jobs:
+# ------------------------------------------------------------------------------------------------------------------------
+  build-app:
+    name: Build Artifacts
+    uses: ./.github/workflows/template-function-app-build.yml
+    with:
+      envCode: 'demo'
+      rootDirectory: 'src/Durable.Demo'
+    secrets: inherit
+
+# ------------------------------------------------------------------------------------------------------------------------
+  infra-demo:
+    name: Create Infra
+    needs: build-app
+    uses: ./.github/workflows/template-create-infra.yml
+    secrets: inherit
+    with:
+      envCode: 'demo'
+      location: 'eastus'
+      storageSku: 'Standard_LRS'
+      functionAppSku: 'Y1'
+      functionAppSkuFamily: 'Y'
+      functionAppSkuTier: 'Dynamic'
+
+  # infra-qa:
+  #   name: Create QA Infra
+  #   needs: infra-demo
+  #   uses: ./.github/workflows/template-create-infra.yml
+  #   secrets: inherit
+  #   with:
+  #     envCode: 'qa'
+  #     location: 'eastus'
+  #     storageSku: 'Standard_LRS'
+  #     functionAppSku: 'Y1'
+  #     functionAppSkuFamily: 'Y'
+  #     functionAppSkuTier: 'Dynamic'
+
+# ------------------------------------------------------------------------------------------------------------------------
+  deploy-app:
+    name: Deploy App
+    needs: infra-demo
+    uses: ./.github/workflows/template-function-app-deploy.yml
+    secrets: inherit
+    with:
+      envCode: 'demo'
+
+  # deploy-app-qa:
+  #   name: QA App
+  #   needs: [deploy-app]
+  #   uses: ./.github/workflows/template-function-app-deploy.yml
+  #   secrets: inherit
+  #   with:
+  #     envCode: 'qa'

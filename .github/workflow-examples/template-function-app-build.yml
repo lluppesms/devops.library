@@ -1,0 +1,63 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# GHA Reusable Called Workflow to build a Function App
+# ------------------------------------------------------------------------------------------------------------------------
+# You need to set up secrets in the GitHub Secrets Repository before running these workflows.
+#   See Docs\CreateGitHubSecrets\.md for details
+# ------------------------------------------------------------------------------------------------------------------------
+name: template.functionapp.build
+run-name: Build Function App
+on:
+  workflow_call:
+    inputs:
+      envCode:
+        required: true
+        type: string
+      rootDirectory:
+        required: true
+        type: string
+
+# ------------------------------------------------------------------------------------------------------------------------
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.envCode }}
+
+    env:
+      CONFIGURATION: Release
+      DOTNET_CORE_VERSION: 6.0.x
+      artifactName: functionapp
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
+
+    - name: Restore Dependencies
+      run: dotnet restore "${{ inputs.rootDirectory }}"
+
+    - name: Build Application
+      shell: bash
+      run: |
+        pushd './${{ inputs.rootDirectory }}'
+        dotnet build --configuration Release --output ./output
+        popd
+
+    # - name: List Files After Build
+    #   run: 
+    #     tree ${{ env.GITHUB_ACTION_PATH }}
+    #   continue-on-error: true
+
+    #- name: Test Application
+    #  run: dotnet test "${{ inputs.rootDirectory }}" --no-build
+
+    - name: Save Publish Artifacts
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: ${{ env.artifactName }}
+        path: ${{ inputs.rootDirectory }}/output

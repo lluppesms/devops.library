@@ -1,0 +1,131 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# GHA Workflow to build a Logic App Standard
+# ------------------------------------------------------------------------------------------------------------------------
+# You need to set up secrets in the GitHub Secrets Repository before running these workflows.
+#   See Docs\CreateGitHubSecrets\.md for details
+# ------------------------------------------------------------------------------------------------------------------------
+name: template.build.logicapp
+run-name: Build Logic App
+on:
+  workflow_call:
+    inputs:
+      envCode:
+        required: true
+        type: string
+
+# ------------------------------------------------------------------------------------------------------------------------
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.envCode }}
+    env:
+      artifactFolderName: App
+      artifactName: logicapp
+      artifactZipFile: LA.zip
+      app_Name_Env: ${{ secrets.APP_NAME }}
+
+    steps:
+    - name: Set Variables
+      run: |-
+        echo "appName=${{ secrets.APP_NAME }}"
+        echo "app_Name_Env=${app_Name_Env}"
+        echo "app_Name_Env.env=${{ env.app_Name_Env }}"
+
+        echo "full_App_Name1=${{ secrets.APP_NAME }}-${{ inputs.envCode }}" >> $env:GITHUB_ENV
+        fullAppName2=${{ secrets.APP_NAME }}-${{ inputs.envCode }}
+        echo "full_App_Name2=$fullAppName2" >> $env:GITHUB_ENV
+        
+        NEW_NAME3="MyName"
+
+
+        ONE_LINE_TEXT="This is a one-line text" 
+        MULTI_LINES_TEXT="this is line one \n
+                  this is line two \n
+                  this is line three \n"
+        echo "ONE_LINE_TEXT_ENV_VAR=$ONE_LINE_TEXT" >> $GITHUB_ENV 
+
+        echo "NEW_NAME=${{ secrets.APP_NAME }}" >> $env:GITHUB_ENV
+        echo "NEW_NAME2=${{ env.app_Name_Env }}" >> $env:GITHUB_ENV
+        
+        NEW_NAME3="MyName"
+        echo "NEW_NAME3=$NEW_NAME3" >> $env:GITHUB_ENV
+        
+        NEW_NAME4="MyName4"
+        echo "NEW_NAME_ENV_VAR=$NEW_NAME4" >> $GITHUB_ENV 
+
+        echo "MULTI_LINES_TEXT_ENV_VAR<<EOF" >> $GITHUB_ENV
+        echo $MULTI_LINES_TEXT >> $GITHUB_ENV 
+        echo "EOF" >> $GITHUB_ENV
+      continue-on-error: true
+
+    - name: Display Variables
+      run: |-
+        echo "appName=${{ secrets.APP_NAME }}"
+        echo "app_Name_Env=${app_Name_Env}"
+        echo "app_Name_Env.env=${{ env.app_Name_Env }}"
+        echo "full_App_Name1=${{ env.full_App_Name1 }}"
+        echo "full_App_Name2=${{ env.full_App_Name2 }}"
+
+        echo "TEST_NAME=${{ env.TEST_NAME }}"
+        echo "NEW_NAME=${{ env.NEW_NAME }}"
+        echo "NEW_NAME2=${{ env.NEW_NAME2 }}"
+        echo "NEW_NAME3=${{ env.NEW_NAME3 }}"
+        echo "NEW_NAME4=${{ env.NEW_NAME4 }}"
+        echo "NEW_NAME_ENV_VAR=${{ env.NEW_NAME_ENV_VAR }}"
+        echo "ONE_LINE_TEXT_ENV_VAR=${{ env.ONE_LINE_TEXT_ENV_VAR }}"
+      continue-on-error: true
+
+    - name: checkout
+      uses: actions/checkout@v2
+
+    - name: List Files
+      run: 
+        tree ${{ env.GITHUB_ACTION_PATH }}
+      continue-on-error: true
+
+    # The following script preserves the globbing behavior of the CopyFiles task.
+    # Refer to this transformer's documentation for an alternative that will work in simple cases.
+    - name: Create project folder
+      uses: actions/github-script@v3
+      env:
+        SOURCE_FOLDER: 'src'
+        TARGET_FOLDER: 'project_output'
+      with:
+        github-token: "${{ secrets.GITHUB_TOKEN }}"
+        script: |-
+          const fs = require('fs').promises
+          const path = require('path')
+          const target = path.resolve(process.env.TARGET_FOLDER)
+          process.chdir(process.env.SOURCE_FOLDER || '.')
+          if (process.env.CLEAN_TARGET_FOLDER === 'true') await io.rmRF(target)
+          const flattenFolders = process.env.FLATTEN_FOLDERS === 'true'
+          const options = {force: process.env.OVERWRITE === 'true'}
+          const globber = await glob.create(process.env.CONTENTS || '**')
+          for await (const file of globber.globGenerator()) {
+            if ((await fs.lstat(file)).isDirectory()) continue
+            const filename = flattenFolders ? path.basename(file) : file.substring(process.cwd().length)
+            const dest = path.join(target, filename)
+            await io.mkdirP(path.dirname(dest))
+            await io.cp(file, dest, options)
+          }
+
+    # - name: List Files
+    #   run: 
+    #     tree ${{ env.GITHUB_ACTION_PATH }}
+
+    - name: Swap parameters files with Azure version
+      working-directory: ./project_output/Workflows/
+      run: |-
+        mv azure.parameters.json parameters.json
+        mv azure.connections.json connections.json
+   
+    - name: Zip files
+      run: 7z u ${{ runner.temp }}/${{ env.artifactZipFile }} ./project_output/Workflows/*
+
+    - name: Publish project zip artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: "${{ env.artifactName }}"
+        path: "${{ runner.temp }}/${{ env.artifactZipFile }}"

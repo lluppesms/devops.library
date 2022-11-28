@@ -1,0 +1,45 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# GHA Workflow to deploy Azure Resources Only
+# ------------------------------------------------------------------------------------------------------------------------
+# You need to set up secrets in the GitHub Secrets Repository before running these workflows.
+#   See Docs\CreateGitHubSecrets\.md for details
+# ------------------------------------------------------------------------------------------------------------------------
+name: deploy.logicapp
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'     
+        required: true
+        default: 'warning' 
+        type: choice
+        options:
+          - info
+          - warning
+          - debug 
+
+jobs:
+# ------------------------------------------------------------------------------------------------------------------------
+  build-app:
+    name: Build Logic App
+    uses: ./.github/workflows/template-logicstd-build.yml
+    secrets: inherit
+    with:
+      envCode: 'demo'
+
+# ------------------------------------------------------------------------------------------------------------------------
+  deploy-demo:
+    name: Deploy Logic App
+    needs: build-app
+    uses: ./.github/workflows/template-logicstd-deploy.yml
+    secrets: inherit
+    with:
+      envCode: 'demo'
+
+  # deploy-qa:
+  #   name: Deploy Logic App
+  #   needs: deploy-demo
+  #   uses: ./.github/workflows/template-logicstd-deploy.yml
+  #   secrets: inherit
+  #   with:
+  #     envCode: 'qa'

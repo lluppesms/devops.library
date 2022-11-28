@@ -1,0 +1,64 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# GHA Workflow to deploy Azure Resources and Logic App
+# ------------------------------------------------------------------------------------------------------------------------
+# You need to set up secrets in the GitHub Secrets Repository before running these workflows.
+#   See Docs\CreateGitHubSecrets\.md for details
+# ------------------------------------------------------------------------------------------------------------------------
+name: deploy.infra.and.app
+on: 
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'     
+        required: true
+        default: 'warning' 
+        type: choice
+        options:
+          - info
+          - warning
+          - debug 
+
+jobs:
+# ------------------------------------------------------------------------------------------------------------------------
+  build-app:
+    name: Build Logic App
+    uses: ./.github/workflows/template-logicstd-build.yml
+    secrets: inherit
+    with:
+      envCode: 'demo'
+
+# ------------------------------------------------------------------------------------------------------------------------
+  infra-demo:
+    name: Create Demo Infra
+    needs: build-app
+    uses: ./.github/workflows/template-create-infra.yml
+    secrets: inherit
+    with:
+      envCode: 'demo'
+      location: 'eastus'
+
+  # infra-qa:
+  #   name: Create DEV Infra
+  #   needs: infra-demo
+  #   uses: ./.github/workflows/template-create-infra.yml
+  #   secrets: inherit
+  #   with:
+  #     envCode: 'qa'
+  #     location: 'eastus'
+
+# ------------------------------------------------------------------------------------------------------------------------
+  deploy-app-demo:
+    name: Deploy Demo App
+    needs: infra-demo
+    uses: ./.github/workflows/template-logicstd-deploy.yml
+    secrets: inherit
+    with:
+      envCode: 'demo'
+
+  # deploy-app-qa:
+  #   name: Deploy QA App
+  #   needs: deploy-app-demo
+  #   uses: ./.github/workflows/template-logicstd-deploy.yml
+  #   secrets: inherit
+  #   with:
+  #     envCode: 'qa'
