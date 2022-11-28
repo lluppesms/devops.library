@@ -23,10 +23,8 @@ jobs:
 - job: CreateInfraJob
   displayName: Create Infrastructure
   variables:
-    - name: bicepDirectory
-      value: '/Bicep/Container-Registry/'
-    - name: bicepFileName
-      value: 'container-registry-main.bicep'
+    - name: templateFile
+      value: './Bicep/Container-Registry/container-registry-main.bicep'
 
   steps:
   - bash: |
@@ -38,9 +36,9 @@ jobs:
   - bash: |
       echo "resourceGroupName=$(resourceGroupName)"
       echo "subscriptionName=$(subscriptionName)"
-      echo "bicepDirectory=$(bicepDirectory)"
-      echo "bicepFileName=$(bicepFileName)"
+      echo "templateFile=$(templateFile)"
       echo "runDateTime=$(runDateTime)"
+      tree $(Pipeline.Workspace)
     displayName: 'Display Variables'
     continueOnError: true
 
@@ -55,7 +53,7 @@ jobs:
   - task: AzureResourceManagerTemplateDeployment@3
     displayName: 'Publish Bicep Resources'
     inputs:
-      csmFile: $(bicepDirectory)$(bicepFileName)
+      csmFile: $(templateFile)
       overrideParameters: >
         -registryName $(registryName) 
         -location $(location) 
