@@ -7,7 +7,7 @@ There are four main categories of resources in this repository:
 - The **azd** folder contains files that are needed to support the "azd" command line tool in your projects. For more information, see:
 
   - [azd Deploy Usage](azd/readme.md)
-  - [azd Project Compatibility](azd/AzdDeploy.md)
+  - [azd Project Compatibility](azd/AzdCompatibility.md)
 
 - The **azdo** folder contains sample YML template for Azure DevOps pipelines.  See:
 
