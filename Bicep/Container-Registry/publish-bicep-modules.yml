@@ -29,9 +29,9 @@ trigger:
     - main
   paths:
     include:
-    - '*.bicep'
+    - '/Bicep/Bicep/*.bicep'
     exclude:
-    - '**/*main.bicep' # only include modules
+    - '/Bicep/Bicep/*main.bicep' # only include modules
  
 pr: none
  
