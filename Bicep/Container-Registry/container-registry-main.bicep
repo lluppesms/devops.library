@@ -12,7 +12,7 @@ param runDateTime string = utcNow()
 var deploymentSuffix = '-${runDateTime}'
 
 // --------------------------------------------------------------------------------
-module registry '../Bicep/containerregistry2.bicep' = {
+module registry '../Bicep/containerregistry.bicep' = {
   name: 'registry-${deploymentSuffix}'
   params: {
     containerRegistryName: registryName

@@ -24,9 +24,9 @@ jobs:
   displayName: Create Infrastructure
   variables:
     - name: bicepDirectory
-      value: '.infrastructure/'
+      value: '/Bicep/Container-Registry/'
     - name: bicepFileName
-      value: 'containerregistry.bicep'
+      value: 'container-registry-main.bicep'
 
   steps:
   - bash: |
