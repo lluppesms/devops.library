@@ -55,3 +55,7 @@ suppression:
   - kvtest001
   Azure.Storage.BlobPublicAccess:
   - sttest001
+
+# Turn off the warnings that tell you files that are not processed
+execution:
+  notProcessedWarning: false
