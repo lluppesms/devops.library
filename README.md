@@ -19,6 +19,6 @@ There are four main categories of resources in this repository:
 
 - The **Bicep** folder contains three types of Bicep files:
 
-  - [Bicep Resource Examples](Bicep/Resource-Examples/readme.md)
+  - [Bicep Resource Examples](Bicep/Bicep/readme.md)
   - [Main.Bicep Examples](Bicep/main.bicep-Examples/readme.md)
   - [Using a Bicep Container Registry](Bicep/Bicep-Container-Registry/readme.md)
