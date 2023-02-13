@@ -1,5 +1,10 @@
 // --------------------------------------------------------------------------------
-// Logic Apps Standard - Main Bicep File
+// Main Bicep file that deploys the Azure Resources for a Logic Apps Standard App
+// --------------------------------------------------------------------------------
+// To deploy this Bicep manually:
+// 	 az login
+//   az account set --subscription <subscriptionId>
+//   az deployment group create -n main-deploy-20230213T110000Z --resource-group rg_functiondemo_dev --template-file 'main-logic-app-std-app.bicep' --parameters orgPrefix=xxx appPrefix=fundemo environmentCode=dev keyVaultOwnerUserId1=xxxxxxxx-xxxx-xxxx keyVaultOwnerUserId2=xxxxxxxx-xxxx-xxxx
 // --------------------------------------------------------------------------------
 @allowed(['dev','demo','qa','stg','prod'])
 param environmentCode string = 'dev'

@@ -1,10 +1,14 @@
 // --------------------------------------------------------------------------------
-// Main Bicep file that creates all of the Azure Resources for one environment
+// Main Bicep File to deploy all Azure Resources for a Durable Function app
+// Note: Bicep modules are used from the repository defined in bicepconfig.json
+// --------------------------------------------------------------------------------
+// NOTE: To make this pipeline work, your service principal may need to be in the
+//   "acr pull" role for the container registry.
 // --------------------------------------------------------------------------------
 // To deploy this Bicep manually:
 // 	 az login
 //   az account set --subscription <subscriptionId>
-//   az deployment group create -n main-deploy-20220902T110000Z --resource-group rg_durable_functions --template-file 'main.bicep' --parameters orgPrefix=xxx appPrefix=durabledemo environmentCode=dev
+//   az deployment group create -n main-deploy-20230213T110000Z --resource-group rg_durable_functions --template-file 'main-durable-function-app-bcr.bicep' --parameters orgPrefix=xxx appPrefix=durabledemo environmentCode=dev
 // --------------------------------------------------------------------------------
 @allowed(['dev','demo','qa','stg','prod'])
 param environmentCode string = 'dev'
@@ -47,7 +51,7 @@ module resourceNames '../Bicep/resourcenames.bicep' = {
 }
 
 // --------------------------------------------------------------------------------
-module functionStorageModule '../Bicep/storageaccount.bicep' = {
+module functionStorageModule 'br/mybicepregistry:storageaccount:LATEST' = {
   name: 'functionstorage${deploymentSuffix}'
   params: {
     storageSku: storageSku
@@ -57,7 +61,7 @@ module functionStorageModule '../Bicep/storageaccount.bicep' = {
   }
 }
 
-module functionModule '../Bicep/functionapp.bicep' = {
+module functionModule 'br/mybicepregistry:functionapp:LATEST' = {
   name: 'function${deploymentSuffix}'
   dependsOn: [ functionStorageModule ]
   params: {
@@ -77,7 +81,7 @@ module functionModule '../Bicep/functionapp.bicep' = {
   }
 }
 
-module dataStorageModule '../Bicep/storageaccount.bicep' = {
+module dataStorageModule 'br/mybicepregistry:storageaccount:LATEST' = {
   name: 'datastorage${deploymentSuffix}'
   params: {
     storageAccountName: resourceNames.outputs.dataStorageName
@@ -86,7 +90,7 @@ module dataStorageModule '../Bicep/storageaccount.bicep' = {
     storageSku: storageSku
   }
 }
-module keyVaultModule '../Bicep/keyvault.bicep' = {
+module keyVaultModule 'br/mybicepregistry:keyvault:LATEST' = {
   name: 'keyvault${deploymentSuffix}'
   dependsOn: [ functionModule ]
   params: {
@@ -98,7 +102,7 @@ module keyVaultModule '../Bicep/keyvault.bicep' = {
   }
 }
 
-module keyVaultSecret1 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret1 'br/mybicepregistry:keyvaultsecret:LATEST' = {
   name: 'keyVaultSecret1${deploymentSuffix}'
   dependsOn: [ keyVaultModule, functionModule ]
   params: {
@@ -108,7 +112,7 @@ module keyVaultSecret1 '../Bicep/keyvaultsecret.bicep' = {
   }
 }
 
-module keyVaultSecret2 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret2 'br/mybicepregistry:keyvaultsecret:LATEST' = {
   name: 'keyVaultSecret2${deploymentSuffix}'
   dependsOn: [ keyVaultModule, functionModule ]
   params: {
@@ -118,7 +122,7 @@ module keyVaultSecret2 '../Bicep/keyvaultsecret.bicep' = {
   }
 }
 
-module keyVaultSecret3 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret3 'br/mybicepregistry:keyvaultsecret:LATEST' = {
   name: 'keyVaultSecret3${deploymentSuffix}'
   dependsOn: [ keyVaultModule, functionModule ]
   params: {
@@ -127,7 +131,7 @@ module keyVaultSecret3 '../Bicep/keyvaultsecret.bicep' = {
     secretValue: twilioPhoneNumber
   }
 }
-module keyVaultSecret4 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
+module keyVaultSecret4 'br/mybicepregistry:keyvaultsecretstorageconnection:LATEST' = {
   name: 'keyVaultSecret4${deploymentSuffix}'
   dependsOn: [ keyVaultModule, dataStorageModule ]
   params: {
@@ -136,7 +140,7 @@ module keyVaultSecret4 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
     storageAccountName: dataStorageModule.outputs.name
   }
 }
-module functionAppSettingsModule '../Bicep/functionappsettings.bicep' = {
+module functionAppSettingsModule 'br/mybicepregistry:functionappsettings:LATEST' = {
   name: 'functionAppSettings${deploymentSuffix}'
   // dependsOn: [  keyVaultSecrets ]
   params: {

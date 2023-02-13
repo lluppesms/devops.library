@@ -13,7 +13,7 @@ var deploymentSuffix = '-${runDateTime}'
 
 // --------------------------------------------------------------------------------
 module registry '../Bicep/containerregistry.bicep' = {
-  name: 'registry-${deploymentSuffix}'
+  name: 'registry${deploymentSuffix}'
   params: {
     containerRegistryName: registryName
     location: location

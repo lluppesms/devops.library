@@ -1,10 +1,14 @@
 ﻿// --------------------------------------------------------------------------------
-// Main Bicep file that creates all of the Azure Resources for one environment
+// Main Bicep file that deploys the Azure Resources for an IoT Hub Application
+// Note: Bicep modules are used from the repository defined in bicepconfig.json
+// --------------------------------------------------------------------------------
+// NOTE: To make this pipeline work, your service principal may need to be in the
+//   "acr pull" role for the container registry.
 // --------------------------------------------------------------------------------
 // Note: To deploy this Bicep manually:
 // 	 az login
 //   az account set --subscription <subscriptionId>
-//   az deployment group create -n main-deploy-20220823T110000Z --resource-group rg_iotdemo_dev --template-file 'main.bicep' --parameters orgPrefix=lll appPrefix=iotdemo environmentCode=dev keyVaultOwnerUserId1=xxxxxxxx-xxxx-xxxx keyVaultOwnerUserId2=xxxxxxxx-xxxx-xxxx
+//   az deployment group create -n main-deploy-20230213T110000Z --resource-group rg_iotdemo_dev --template-file 'main-iothub-app-bcr.bicep' --parameters orgPrefix=lll appPrefix=iotdemo environmentCode=dev keyVaultOwnerUserId1=xxxxxxxx-xxxx-xxxx keyVaultOwnerUserId2=xxxxxxxx-xxxx-xxxx
 // --------------------------------------------------------------------------------
 @allowed(['dev','demo','qa','stg','prod'])
 param environmentCode string = 'dev'
@@ -47,7 +51,7 @@ module resourceNames '../Bicep/resourcenames.bicep' = {
 }
 
 // --------------------------------------------------------------------------------
-module storageModule '../Bicep/storageaccount.bicep' = {
+module storageModule 'br/mybicepregistry:storageaccount:LATEST' = {
   name: 'storage${deploymentSuffix}'
   params: {
     storageAccountName: resourceNames.outputs.functionStorageName
@@ -57,7 +61,7 @@ module storageModule '../Bicep/storageaccount.bicep' = {
   }
 }
 
-module iotHubModule '../Bicep/iothub.bicep' = {
+module iotHubModule 'br/mybicepregistry:iothub:LATEST' = {
   name: 'iotHub${deploymentSuffix}'
   params: {
     iotHubName: resourceNames.outputs.iotHubName
@@ -67,7 +71,7 @@ module iotHubModule '../Bicep/iothub.bicep' = {
     commonTags: commonTags
   }
 }
-module dpsModule '../Bicep/dps.bicep' = {
+module dpsModule 'br/mybicepregistry:dps:LATEST' = {
   name: 'dps${deploymentSuffix}'
   dependsOn: [ iotHubModule ]
   params: {
@@ -78,7 +82,7 @@ module dpsModule '../Bicep/dps.bicep' = {
   }
 }
 
-module signalRModule '../Bicep/signalr.bicep' = {
+module signalRModule 'br/mybicepregistry:signalr:LATEST' = {
   name: 'signalR${deploymentSuffix}'
   params: {
     signalRName: resourceNames.outputs.signalRName
@@ -87,7 +91,7 @@ module signalRModule '../Bicep/signalr.bicep' = {
   }
 }
 
-module servicebusModule '../Bicep/servicebus.bicep' = {
+module servicebusModule 'br/mybicepregistry:servicebus:LATEST' = {
   name: 'servicebus${deploymentSuffix}'
   params: {
     serviceBusName: resourceNames.outputs.serviceBusName
@@ -97,7 +101,7 @@ module servicebusModule '../Bicep/servicebus.bicep' = {
   }
 }
 
-module streamingModule '../Bicep/streaming.bicep' = {
+module streamingModule 'br/mybicepregistry:streaming:LATEST' = {
   name: 'streaming${deploymentSuffix}'
   params: {
     saJobName: resourceNames.outputs.saJobName
@@ -114,7 +118,7 @@ var cosmosContainerArray = [
   { name: 'DeviceData', partitionKey: '/partitionKey' }
   { name: 'DeviceInfo', partitionKey: '/partitionKey' }
 ]
-module cosmosModule '../Bicep/cosmosdatabase.bicep' = {
+module cosmosModule 'br/mybicepregistry:cosmosdatabase:LATEST' = {
   name: 'cosmos${deploymentSuffix}'
   params: {
     cosmosAccountName: resourceNames.outputs.cosmosAccountName
@@ -126,7 +130,7 @@ module cosmosModule '../Bicep/cosmosdatabase.bicep' = {
   }
 }
 
-module functionModule '../Bicep/functionapp.bicep' = {
+module functionModule 'br/mybicepregistry:functionapp:LATEST' = {
   name: 'function${deploymentSuffix}'
   dependsOn: [ storageModule ]
   params: {
@@ -146,7 +150,7 @@ module functionModule '../Bicep/functionapp.bicep' = {
   }
 }
 
-module webSiteModule '../Bicep/website.bicep' = {
+module webSiteModule 'br/mybicepregistry:website:LATEST' = {
   name: 'webSite${deploymentSuffix}'
   params: {
     webSiteName: resourceNames.outputs.webSiteName
@@ -160,7 +164,7 @@ module webSiteModule '../Bicep/website.bicep' = {
   }
 }
 
-module keyVaultModule '../Bicep/keyvault.bicep' = {
+module keyVaultModule 'br/mybicepregistry:keyvault:LATEST' = {
   name: 'keyvault${deploymentSuffix}'
   dependsOn: [ functionModule, webSiteModule ]
   params: {
@@ -173,7 +177,7 @@ module keyVaultModule '../Bicep/keyvault.bicep' = {
   }
 }
 
-module keyVaultSecret1 '../Bicep/keyvaultsecretiothubconnection.bicep' = {
+module keyVaultSecret1 'br/mybicepregistry:keyvaultsecretiothubconnection:LATEST' = {
   name: 'keyVaultSecret1${deploymentSuffix}'
   dependsOn: [ keyVaultModule, iotHubModule ]
   params: {
@@ -183,7 +187,7 @@ module keyVaultSecret1 '../Bicep/keyvaultsecretiothubconnection.bicep' = {
   }
 }
 
-module keyVaultSecret2 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
+module keyVaultSecret2 'br/mybicepregistry:keyvaultsecretstorageconnection:LATEST' = {
   name: 'keyVaultSecret2${deploymentSuffix}'
   dependsOn: [ keyVaultModule, iotHubModule ]
   params: {
@@ -193,7 +197,7 @@ module keyVaultSecret2 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
   }
 }
 
-module keyVaultSecret3 '../Bicep/keyvaultsecretsignalrconnection.bicep' = {
+module keyVaultSecret3 'br/mybicepregistry:keyvaultsecretsignalrconnection:LATEST' = {
   name: 'keyVaultSecret3${deploymentSuffix}'
   dependsOn: [ keyVaultModule, signalRModule ]
   params: {
@@ -203,7 +207,7 @@ module keyVaultSecret3 '../Bicep/keyvaultsecretsignalrconnection.bicep' = {
   }
 }
 
-module keyVaultSecret4 '../Bicep/keyvaultsecretcosmosconnection.bicep' = {
+module keyVaultSecret4 'br/mybicepregistry:keyvaultsecretcosmosconnection:LATEST' = {
   name: 'keyVaultSecret4${deploymentSuffix}'
   dependsOn: [ keyVaultModule, cosmosModule ]
   params: {
@@ -213,7 +217,7 @@ module keyVaultSecret4 '../Bicep/keyvaultsecretcosmosconnection.bicep' = {
   }
 }
 
-module keyVaultSecret5 '../Bicep/keyvaultsecretservicebusconnection.bicep' = {
+module keyVaultSecret5 'br/mybicepregistry:keyvaultsecretservicebusconnection:LATEST' = {
   name: 'keyVaultSecret5${deploymentSuffix}'
   dependsOn: [ keyVaultModule, servicebusModule ]
   params: {
@@ -223,7 +227,7 @@ module keyVaultSecret5 '../Bicep/keyvaultsecretservicebusconnection.bicep' = {
   }
 }
 
-module keyVaultSecret6 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret6 'br/mybicepregistry:keyvaultsecret:LATEST' = {
   name: 'keyVaultSecret6${deploymentSuffix}'
   dependsOn: [ keyVaultModule, functionModule ]
   params: {
@@ -233,7 +237,7 @@ module keyVaultSecret6 '../Bicep/keyvaultsecret.bicep' = {
   }
 }
 
-module keyVaultSecret7 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret7 'br/mybicepregistry:keyvaultsecret:LATEST' = {
   name: 'keyVaultSecret7${deploymentSuffix}'
   dependsOn: [ keyVaultModule, webSiteModule ]
   params: {
@@ -243,7 +247,7 @@ module keyVaultSecret7 '../Bicep/keyvaultsecret.bicep' = {
   }
 }  
 
-module functionAppSettingsModule '../Bicep/functionappsettings.bicep' = {
+module functionAppSettingsModule 'br/mybicepregistry:functionappsettings:LATEST' = {
   name: 'functionAppSettings${deploymentSuffix}'
   dependsOn: [ keyVaultSecret1, keyVaultSecret2, keyVaultSecret3, keyVaultSecret4, keyVaultSecret5, keyVaultSecret6, keyVaultSecret7 ]
   params: {
@@ -263,7 +267,7 @@ module functionAppSettingsModule '../Bicep/functionappsettings.bicep' = {
   }
 }
 
-module webSiteAppSettingsModule '../Bicep/websiteappsettings.bicep' = {
+module webSiteAppSettingsModule 'br/mybicepregistry:websiteappsettings:LATEST' = {
   name: 'webSiteAppSettings${deploymentSuffix}'
   dependsOn: [ keyVaultSecret1, keyVaultSecret2, keyVaultSecret3, keyVaultSecret4, keyVaultSecret5, keyVaultSecret6, keyVaultSecret7 ]
   params: {

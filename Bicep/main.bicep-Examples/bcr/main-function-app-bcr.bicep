@@ -1,5 +1,6 @@
 ﻿// --------------------------------------------------------------------------------
-// Main Bicep file that creates all of the Azure Resources for one environment
+// Main Bicep file that deploys the Azure Resources for a Function App
+// Note: Bicep modules are used from the repository defined in bicepconfig.json
 // --------------------------------------------------------------------------------
 // NOTE: To make this pipeline work, your service principal may need to be in the
 //   "acr pull" role for the container registry.
@@ -7,18 +8,7 @@
 // To deploy this Bicep manually:
 // 	 az login
 //   az account set --subscription <subscriptionId>
-//   az deployment group create -n main-deploy-20220823T110000Z --resource-group rg_functiondemo_dev --template-file 'main.bicep' --parameters orgPrefix=xxx appPrefix=fundemo environmentCode=dev keyVaultOwnerUserId1=xxxxxxxx-xxxx-xxxx keyVaultOwnerUserId2=xxxxxxxx-xxxx-xxxx
-//   az deployment group create -n main-deploy-20220823T110000Z --resource-group rg_functiondemo_qa  --template-file 'main.bicep' --parameters orgPrefix=xxx appPrefix=fundemo environmentCode=qa  keyVaultOwnerUserId1=xxxxxxxx-xxxx-xxxx keyVaultOwnerUserId2=xxxxxxxx-xxxx-xxxx
-// --------------------------------------------------------------------------------
-// To list the available bicep container registry image tags:
-//   $registryName = 'lllbicepregistry'
-//   Write-Host "Scanning for repository tags in $registryName"
-//   az acr repository list --name $registryName -o tsv | Foreach-Object { 
-//     $thisModule = $_
-//     az acr repository show-tags --name $registryName --repository $_ --output tsv  | Foreach-Object { 
-//       Write-Host "$thisModule`:$_"
-//     }
-//   }
+//   az deployment group create -n main-deploy-20230213T110000Z --resource-group rg_functiondemo_dev --template-file 'main-function-app-bcr.bicep' --parameters orgPrefix=xxx appPrefix=fundemo environmentCode=dev keyVaultOwnerUserId1=xxxxxxxx-xxxx-xxxx keyVaultOwnerUserId2=xxxxxxxx-xxxx-xxxx
 // --------------------------------------------------------------------------------
 @allowed(['dev','demo','qa','stg','prod'])
 param environmentCode string = 'dev'
@@ -67,8 +57,7 @@ module resourceNames '../Bicep/resourcenames.bicep' = {
 }
 
 // --------------------------------------------------------------------------------
-//module storageModule 'br/mybicepmodules:storageaccount:LATEST' = {
-module functionStorageModule '../Bicep/storageaccount.bicep' = {
+module functionStorageModule 'br/mybicepregistry:storageaccount:LATEST' = {
   name: 'functionstorage${deploymentSuffix}'
   params: {
     storageSku: storageSku
@@ -77,9 +66,7 @@ module functionStorageModule '../Bicep/storageaccount.bicep' = {
     commonTags: commonTags
   }
 }
-
-//module servicebusModule 'br/mybicepmodules:servicebus:LATEST' = {
-module servicebusModule '../Bicep/servicebus.bicep' = {
+module servicebusModule 'br/mybicepregistry:servicebus:LATEST' = {
   name: 'servicebus${deploymentSuffix}'
   params: {
     serviceBusName: resourceNames.outputs.serviceBusName
@@ -88,14 +75,11 @@ module servicebusModule '../Bicep/servicebus.bicep' = {
     commonTags: commonTags
   }
 }
-
 var cosmosContainerArray = [
   { name: cosmosProductsContainerDbName, partitionKey: cosmosProductsContainerDbKey }
   { name: cosmosOrdersContainerDbName, partitionKey: cosmosOrdersContainerDbKey }
 ]
-
-//module cosmosModule 'br/mybicepmodules:cosmosdatabase:LATEST' = {
-module cosmosModule '../Bicep/cosmosdatabase.bicep' = {
+module cosmosModule 'br/mybicepregistry:cosmosdatabase:LATEST' = {
   name: 'cosmos${deploymentSuffix}'
   params: {
     cosmosAccountName: resourceNames.outputs.cosmosAccountName
@@ -106,8 +90,7 @@ module cosmosModule '../Bicep/cosmosdatabase.bicep' = {
     commonTags: commonTags
   }
 }
-//module functionModule 'br/mybicepmodules:functionapp:LATEST' = {
-module functionModule '../Bicep/functionapp.bicep' = {
+module functionModule 'br/mybicepregistry:functionapp:LATEST' = {
   name: 'function${deploymentSuffix}'
   dependsOn: [ functionStorageModule ]
   params: {
@@ -126,8 +109,7 @@ module functionModule '../Bicep/functionapp.bicep' = {
     functionStorageAccountName: functionStorageModule.outputs.name
   }
 }
-//module keyVaultModule 'br/mybicepmodules:keyvault:LATEST' = {
-module keyVaultModule '../Bicep/keyvault.bicep' = {
+module keyVaultModule 'br/mybicepregistry:keyvault:LATEST' = {
   name: 'keyvault${deploymentSuffix}'
   dependsOn: [ functionModule ]
   params: {
@@ -138,8 +120,7 @@ module keyVaultModule '../Bicep/keyvault.bicep' = {
     applicationUserObjectIds: [ functionModule.outputs.principalId ]
   }
 }
-//module keyVaultSecret1 'br/mybicepmodules:keyvaultsecret:LATEST' = {
-module keyVaultSecret1 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret1 'br/mybicepregistry:keyvaultsecret:LATEST' = {
   name: 'keyVaultSecret1${deploymentSuffix}'
   dependsOn: [ keyVaultModule, functionModule ]
   params: {
@@ -148,8 +129,7 @@ module keyVaultSecret1 '../Bicep/keyvaultsecret.bicep' = {
     secretValue: functionModule.outputs.insightsKey
   }
 }
-//module keyVaultSecret2 'br/mybicepmodules:keyvaultsecretcosmosconnection:LATEST' = {
-module keyVaultSecret2 '../Bicep/keyvaultsecretcosmosconnection.bicep' = {
+module keyVaultSecret2 'br/mybicepregistry:keyvaultsecretcosmosconnection:LATEST' = {
   name: 'keyVaultSecret2${deploymentSuffix}'
   dependsOn: [ keyVaultModule, cosmosModule ]
   params: {
@@ -158,8 +138,7 @@ module keyVaultSecret2 '../Bicep/keyvaultsecretcosmosconnection.bicep' = {
     cosmosAccountName: cosmosModule.outputs.name
   }
 }
-//module keyVaultSecret3 'br/mybicepmodules:keyvaultsecretservicebusconnection:LATEST' = {
-module keyVaultSecret3 '../Bicep/keyvaultsecretservicebusconnection.bicep' = {
+module keyVaultSecret3 'br/mybicepregistry:keyvaultsecretservicebusconnection:LATEST' = {
   name: 'keyVaultSecret3${deploymentSuffix}'
   dependsOn: [ keyVaultModule, servicebusModule ]
   params: {
@@ -169,8 +148,7 @@ module keyVaultSecret3 '../Bicep/keyvaultsecretservicebusconnection.bicep' = {
     accessKeyName: 'send'
   }
 }
-//module keyVaultSecret4 'br/mybicepmodules:keyvaultsecretservicebusconnection:LATEST' = {
-module keyVaultSecret4 '../Bicep/keyvaultsecretservicebusconnection.bicep' = {
+module keyVaultSecret4 'br/mybicepregistry:keyvaultsecretservicebusconnection:LATEST' = {
   name: 'keyVaultSecret4${deploymentSuffix}'
   dependsOn: [ keyVaultModule, servicebusModule ]
   params: {
@@ -180,8 +158,7 @@ module keyVaultSecret4 '../Bicep/keyvaultsecretservicebusconnection.bicep' = {
     accessKeyName: 'listen'
   }
 }
-//module keyVaultSecret5 'br/mybicepmodules:keyvaultsecretstorageconnection:LATEST' = {
-module keyVaultSecret5 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
+module keyVaultSecret5 'br/mybicepregistry:keyvaultsecretstorageconnection:LATEST' = {
   name: 'keyVaultSecret5${deploymentSuffix}'
   dependsOn: [ keyVaultModule, functionStorageModule ]
   params: {
@@ -190,8 +167,7 @@ module keyVaultSecret5 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
     storageAccountName: functionStorageModule.outputs.name
   }
 }
-//module functionAppSettingsModule 'br/mybicepmodules:functionappsettings:LATEST' = {
-module functionAppSettingsModule '../Bicep/functionappsettings.bicep' = {
+module functionAppSettingsModule 'br/mybicepregistry:functionappsettings:LATEST' = {
   name: 'functionAppSettings${deploymentSuffix}'
   dependsOn: [ keyVaultSecret1, keyVaultSecret2, keyVaultSecret3, keyVaultSecret4, keyVaultSecret5, functionModule ]
   params: {

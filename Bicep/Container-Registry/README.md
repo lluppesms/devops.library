@@ -1,6 +1,6 @@
 # Bicep Container Registries
 
-To share bicep files among development teams, they can be published to a Container Registry.
+To share Bicep files among development teams, they can be published to a Container Registry.
 
 *For an example on how to publish them, see the ".infrastructure/publish-bicep-modules.yml" file in this project.*
 
@@ -56,31 +56,51 @@ displayName: 'az login'
 
 NOTE: The service principal **may** need to be in the "acr pull" role for the container registry. *(This needs to be confirmed!)*
 
-Note: this might also be accomplished by using a token instead of a service principal. *(This needs to be researched and documented!*  See: [Container Registry Scoped Permissions](https://learn.microsoft.com/en-us/azure/container-registry/container-registry-repository-scoped-permissions) )
+Note: this might also be accomplished by using a token instead of a service principal. *(This needs to be researched and documented!*)  
+
+See: [Container Registry Scoped Permissions](https://learn.microsoft.com/en-us/azure/container-registry/container-registry-repository-scoped-permissions)
 
 ---
 
-## Idea to Upgrade this Repo?
+## Setup a Bicep Container Registry
 
-Investigate/Create this process in this repository:
-
-- Make a pipeline to create resources (i.e. container registry and Key Vault)
-- Create two tokens in the registry (a read and a write token)
-- Add those token values to the key vault
-- Have the publish bicep file pipeline use the writable token to access registry
-- Set permissions for other pipelines:
-  - Grant them rights to the Key Vault and to only that one read key
-  - They can access the registry entries in their pipelines using the read token
-
----
-
-## Setup
-
-1. Run a command similar to the below to create a container registry in a resource group
+1. Run the pipeline 'create-bicep-registry.yml' or run a command similar to the one below to create a container registry in a resource group
 
     ``` bash
-    az deployment group create -n main-deploy-20221103T090000Z --resource-group rg_bicep_registry --template-file '.infrastructure/containerregistry.bicep' --parameters registryName=xxxbicepregistry
+    $resourceGroupName = 'yourResourceGroup'
+    $registryName = 'yourRegistryName'
+    az deployment group create -n main-deploy-20230213T090000Z --resource-group $resourceGroupName --template-file 'containerregistry.bicep' --parameters registryName=$registryName
     ```
 
-2. Set up the pipeline .infrastructure/publish-bicep-modules.yml, which will push bicep file changes to the container registry as they are committed. The pipeline needs two variables defined: registryName
-and subscriptionName.
+2. Set up the pipeline publish-bicep-modules.yml, which will push bicep file changes to the container registry as they are committed. The pipeline needs two variables defined: registryName and subscriptionName.
+
+---
+
+## Bicep Container Registry Commands
+
+### List Contents of a BCR
+
+To list the contents of all the registry images and their tags:
+
+``` bash
+$registryName = 'yourRegistryName'
+$modulePrefix = 'bicep/'
+Write-Host "Scanning for repository tags in $registryName"
+az acr repository list --name $registryName --query "[?contains(@, '${modulePrefix}')]" -o tsv | Foreach-Object { 
+    $thisModule = $_
+    az acr repository show-tags --name $registryName --repository $_ --output tsv  | Foreach-Object { 
+      Write-Host "$thisModule`:$_"
+    }
+}
+```
+
+### Removing a BCR Entry
+
+With these scripts, the entries are locked, so they are not easily removed. To remove a repository entry from the registry, you need to unlock it, then delete it:
+
+``` bash
+$registryName = 'yourRegistryName'
+$repositoryEntry = 'bicep/sample3:2022-08-24.259'
+az acr repository update --name $registryName --image $repositoryEntry --write-enabled true
+az acr repository delete --name $registryName --image $repositoryEntry 
+```

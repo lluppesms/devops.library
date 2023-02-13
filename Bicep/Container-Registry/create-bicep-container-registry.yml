@@ -2,8 +2,8 @@
 # Pipeline to deploy Bicep Container Registry in Azure
 # ------------------------------------------------------------------------------------------------------------------------
 # This pipeline needs four variables defined in AzDO:
-#  subscriptionName: 'yourSubscriptionName'
-#  registryName:     'yourContainerRegistryName'
+#  subscriptionName:  'yourSubscriptionName'
+#  registryName:      'yourContainerRegistryName'
 #  resourceGroupName: 'yourResourceGroupName'
 #  location:          'eastus'
 # ------------------------------------------------------------------------------------------------------------------------

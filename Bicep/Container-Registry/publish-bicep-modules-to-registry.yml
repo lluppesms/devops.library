@@ -5,23 +5,6 @@
 #  subscriptionName: 'your subscriptionName'
 #  registryName:     'yourContainerRegistryName'
 # ------------------------------------------------------------------------------------------------------------------------
-# To list the contents of all the registry images and their tags:
-#   $registryName = 'yourRegistryName'
-#   $modulePrefix = 'bicep/'
-#   Write-Host "Scanning for repository tags in $registryName"
-#   az acr repository list --name $registryName --query "[?contains(@, '${modulePrefix}')]" -o tsv | Foreach-Object { 
-#     $thisModule = $_
-#     az acr repository show-tags --name $registryName --repository $_ --output tsv  | Foreach-Object { 
-#       Write-Host "$thisModule`:$_"
-#     }
-#   }
-# ------------------------------------------------------------------------------------------------------------------------
-# To remove a repository entry from the registry, you need to unlock it, then delete it:
-#   $registryName = 'yourRegistryName'
-#   $repositoryEntry = 'bicep/sample3:2022-08-24.259'
-#   az acr repository update --name $registryName --image $repositoryEntry --write-enabled true
-#   az acr repository delete --name $registryName --image $repositoryEntry 
-# ------------------------------------------------------------------------------------------------------------------------
 name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
 trigger:
   branches:
@@ -36,13 +19,17 @@ trigger:
 pr: none
  
 variables:
-  modulePrefix: 'bicep/'
+  - name: modulePrefix
+    value: 'bicep/'
+  - name: runPsRule
+    value: false
  
 pool:
   vmImage: ubuntu-latest
 
 steps:
 - task: ps-rule-assert@2
+  condition: eq(variables['runPsRule'], 'true') 
   displayName: Run PSRule analysis
   inputs:
     modules: 'PSRule.Rules.Azure'

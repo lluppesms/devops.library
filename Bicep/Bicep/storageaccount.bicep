@@ -1,13 +1,17 @@
 ﻿// --------------------------------------------------------------------------------
 // This BICEP file will create storage account
+// FYI: To purge a storage account with soft delete enabled: > az storage account purge --name storeName
 // --------------------------------------------------------------------------------
 param storageAccountName string = 'mystorageaccountname'
 param location string = resourceGroup().location
 param commonTags object = {}
-
 @allowed([ 'Standard_LRS', 'Standard_GRS', 'Standard_RAGRS' ])
 param storageSku string = 'Standard_LRS'
 param storageAccessTier string = 'Hot'
+param containerNames array = ['input','output']
+@allowed(['Allow','Deny'])
+param allowNetworkAccess string = 'Allow'
+@description('The IP Addresses that are allowed access to this storage account.')
 
 // --------------------------------------------------------------------------------
 var templateTag = { TemplateFile: '~storageAccount.bicep' }
@@ -25,11 +29,11 @@ resource storageAccountResource 'Microsoft.Storage/storageAccounts@2019-06-01' =
     properties: {
         networkAcls: {
             bypass: 'AzureServices'
-            virtualNetworkRules: [
-            ]
-            ipRules: [
-            ]
-            defaultAction: 'Allow'
+            defaultAction: allowNetworkAccess
+            ipRules: []
+            // ipRules: (empty(ipRules) ? json('[]') : ipRules)
+            virtualNetworkRules: []
+            //virtualNetworkRules: ((virtualNetworkType == 'External') ? json('[{"id": "${subscription().id}/resourceGroups/${vnetResource}/providers/Microsoft.Network/virtualNetworks/${vnetResource.name}/subnets/${subnetName}"}]') : json('[]'))
         }
         supportsHttpsTrafficOnly: true
         encryption: {
@@ -65,5 +69,16 @@ resource blobServiceResource 'Microsoft.Storage/storageAccounts/blobServices@201
     }
 }
 
+resource containers 'Microsoft.Storage/storageAccounts/blobServices/containers@2019-06-01' = [for containerName in containerNames: {
+    name: '${containerName}'
+    parent: blobServiceResource
+    properties: {
+      publicAccess: 'None'
+      metadata: {}
+    }
+  }]
+
+
+// --------------------------------------------------------------------------------
 output id string = storageAccountResource.id
 output name string = storageAccountResource.name

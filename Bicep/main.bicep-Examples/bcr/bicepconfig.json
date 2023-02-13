@@ -13,12 +13,12 @@
 //   }
 // --------------------------------------------------------------------------------
 // To reference the latest bicep container registry image tags:
-//   module storageModule 'br/mybicepmodules:storageaccount:2022-09-04.425' = {
+//   module storageModule 'br/mybicepregistry:storageaccount:LATEST' = {
 // --------------------------------------------------------------------------------
 {
     "moduleAliases": {
         "br": {
-            "mybicepmodules": {
+            "mybicepregistry": {
                 "registry": "lllbicepregistry.azurecr.io",
                 "modulePath": "bicep"
             }

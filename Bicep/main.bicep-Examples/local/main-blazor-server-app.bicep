@@ -1,10 +1,10 @@
 ﻿// --------------------------------------------------------------------------------
-// Main file that deploys all Azure Resources for one environment
+// Main Bicep File to deploy all Azure Resources for a Blazor Server Web app
 // --------------------------------------------------------------------------------
 // Note: To deploy this Bicep manually:
 // 	 az login
 //   az account set --subscription <subscriptionId>
-//   az deployment group create -n main-deploy-20220823T110000Z --resource-group rg_blazor_dev --template-file 'main.bicep' --parameters orgPrefix=lll appPrefix=blazordemo environmentCode=dev keyVaultOwnerUserId1=xxxxxxxx-xxxx-xxxx
+//   az deployment group create -n main-deploy-20230213T110000Z --resource-group rg_blazor_dev --template-file 'main-blazor-server-app.bicep' --parameters orgPrefix=lll appPrefix=blazordemo environmentCode=dev keyVaultOwnerUserId1=xxxxxxxx-xxxx-xxxx
 // --------------------------------------------------------------------------------
 param environmentCode string = 'dev'
 param location string = resourceGroup().location
