@@ -28,7 +28,7 @@ var commonTags = {
 }
 
 // --------------------------------------------------------------------------------
-module resourceNames '../Bicep/resourcenames.bicep' = {
+module resourceNames '../../Bicep/resourcenames.bicep' = {
   name: 'resourcenames${deploymentSuffix}'
   params: {
     orgPrefix: orgPrefix
@@ -39,7 +39,7 @@ module resourceNames '../Bicep/resourcenames.bicep' = {
   }
 }
 // --------------------------------------------------------------------------------
-module storageModule '../Bicep/storageaccount.bicep' = {
+module storageModule '../../Bicep/storageaccount.bicep' = {
   name: 'storage${deploymentSuffix}'
   params: {
     storageSku: storageSku
@@ -52,7 +52,7 @@ module storageModule '../Bicep/storageaccount.bicep' = {
 var cosmosContainerArray = [
   { name: 'DeviceData', partitionKey: '/partitionKey' }
 ]
-module cosmosModule '../Bicep/cosmosdatabase.bicep' = {
+module cosmosModule '../../Bicep/cosmosdatabase.bicep' = {
   name: 'cosmos${deploymentSuffix}'
   params: {
     cosmosAccountName: resourceNames.outputs.cosmosAccountName 
@@ -63,7 +63,7 @@ module cosmosModule '../Bicep/cosmosdatabase.bicep' = {
   }
 }
 
-module webSiteModule '../Bicep/website.bicep' = {
+module webSiteModule '../../Bicep/website.bicep' = {
   name: 'webSite${deploymentSuffix}'
   params: {
     webSiteName: resourceNames.outputs.webSiteName
@@ -74,7 +74,7 @@ module webSiteModule '../Bicep/website.bicep' = {
   }
 }
 
-module keyVaultModule '../Bicep/keyvault.bicep' = {
+module keyVaultModule '../../Bicep/keyvault.bicep' = {
   name: 'keyvault${deploymentSuffix}'
   dependsOn: [ webSiteModule ]
   params: {
@@ -86,7 +86,7 @@ module keyVaultModule '../Bicep/keyvault.bicep' = {
   }
 }
 
-module keyVaultSecret1 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret1 '../../Bicep/keyvaultsecret.bicep' = {
   name: 'keyVaultSecret1${deploymentSuffix}'
   dependsOn: [ keyVaultModule, webSiteModule ]
   params: {
@@ -95,7 +95,7 @@ module keyVaultSecret1 '../Bicep/keyvaultsecret.bicep' = {
     secretValue: webSiteModule.outputs.insightsKey
   }
 }  
-module keyVaultSecretCosmos '../Bicep/keyvaultsecretcosmosconnection.bicep' = {
+module keyVaultSecretCosmos '../../Bicep/keyvaultsecretcosmosconnection.bicep' = {
   name: 'keyVaultSecretCosmos${deploymentSuffix}'
   dependsOn: [ keyVaultModule, cosmosModule ]
   params: {
@@ -105,7 +105,7 @@ module keyVaultSecretCosmos '../Bicep/keyvaultsecretcosmosconnection.bicep' = {
   }
 }
 
-module webSiteAppSettingsModule '../Bicep/websiteappsettings.bicep' = {
+module webSiteAppSettingsModule '../../Bicep/websiteappsettings.bicep' = {
   name: 'webSiteAppSettings${deploymentSuffix}'
   dependsOn: [ keyVaultSecret1 ]
   params: {

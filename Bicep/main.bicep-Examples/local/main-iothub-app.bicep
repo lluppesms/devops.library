@@ -32,7 +32,7 @@ var commonTags = {
 }
 
 // --------------------------------------------------------------------------------
-module resourceNames '../Bicep/resourcenames.bicep' = {
+module resourceNames '../../Bicep/resourcenames.bicep' = {
   name: 'resourcenames${deploymentSuffix}'
   params: {
     orgPrefix: orgPrefix
@@ -47,7 +47,7 @@ module resourceNames '../Bicep/resourcenames.bicep' = {
 }
 
 // --------------------------------------------------------------------------------
-module storageModule '../Bicep/storageaccount.bicep' = {
+module storageModule '../../Bicep/storageaccount.bicep' = {
   name: 'storage${deploymentSuffix}'
   params: {
     storageAccountName: resourceNames.outputs.functionStorageName
@@ -57,7 +57,7 @@ module storageModule '../Bicep/storageaccount.bicep' = {
   }
 }
 
-module iotHubModule '../Bicep/iothub.bicep' = {
+module iotHubModule '../../Bicep/iothub.bicep' = {
   name: 'iotHub${deploymentSuffix}'
   params: {
     iotHubName: resourceNames.outputs.iotHubName
@@ -67,7 +67,7 @@ module iotHubModule '../Bicep/iothub.bicep' = {
     commonTags: commonTags
   }
 }
-module dpsModule '../Bicep/dps.bicep' = {
+module dpsModule '../../Bicep/dps.bicep' = {
   name: 'dps${deploymentSuffix}'
   dependsOn: [ iotHubModule ]
   params: {
@@ -78,7 +78,7 @@ module dpsModule '../Bicep/dps.bicep' = {
   }
 }
 
-module signalRModule '../Bicep/signalr.bicep' = {
+module signalRModule '../../Bicep/signalr.bicep' = {
   name: 'signalR${deploymentSuffix}'
   params: {
     signalRName: resourceNames.outputs.signalRName
@@ -87,7 +87,7 @@ module signalRModule '../Bicep/signalr.bicep' = {
   }
 }
 
-module servicebusModule '../Bicep/servicebus.bicep' = {
+module servicebusModule '../../Bicep/servicebus.bicep' = {
   name: 'servicebus${deploymentSuffix}'
   params: {
     serviceBusName: resourceNames.outputs.serviceBusName
@@ -97,7 +97,7 @@ module servicebusModule '../Bicep/servicebus.bicep' = {
   }
 }
 
-module streamingModule '../Bicep/streaming.bicep' = {
+module streamingModule '../../Bicep/streaming.bicep' = {
   name: 'streaming${deploymentSuffix}'
   params: {
     saJobName: resourceNames.outputs.saJobName
@@ -114,7 +114,7 @@ var cosmosContainerArray = [
   { name: 'DeviceData', partitionKey: '/partitionKey' }
   { name: 'DeviceInfo', partitionKey: '/partitionKey' }
 ]
-module cosmosModule '../Bicep/cosmosdatabase.bicep' = {
+module cosmosModule '../../Bicep/cosmosdatabase.bicep' = {
   name: 'cosmos${deploymentSuffix}'
   params: {
     cosmosAccountName: resourceNames.outputs.cosmosAccountName
@@ -126,7 +126,7 @@ module cosmosModule '../Bicep/cosmosdatabase.bicep' = {
   }
 }
 
-module functionModule '../Bicep/functionapp.bicep' = {
+module functionModule '../../Bicep/functionapp.bicep' = {
   name: 'function${deploymentSuffix}'
   dependsOn: [ storageModule ]
   params: {
@@ -146,7 +146,7 @@ module functionModule '../Bicep/functionapp.bicep' = {
   }
 }
 
-module webSiteModule '../Bicep/website.bicep' = {
+module webSiteModule '../../Bicep/website.bicep' = {
   name: 'webSite${deploymentSuffix}'
   params: {
     webSiteName: resourceNames.outputs.webSiteName
@@ -160,7 +160,7 @@ module webSiteModule '../Bicep/website.bicep' = {
   }
 }
 
-module keyVaultModule '../Bicep/keyvault.bicep' = {
+module keyVaultModule '../../Bicep/keyvault.bicep' = {
   name: 'keyvault${deploymentSuffix}'
   dependsOn: [ functionModule, webSiteModule ]
   params: {
@@ -173,7 +173,7 @@ module keyVaultModule '../Bicep/keyvault.bicep' = {
   }
 }
 
-module keyVaultSecret1 '../Bicep/keyvaultsecretiothubconnection.bicep' = {
+module keyVaultSecret1 '../../Bicep/keyvaultsecretiothubconnection.bicep' = {
   name: 'keyVaultSecret1${deploymentSuffix}'
   dependsOn: [ keyVaultModule, iotHubModule ]
   params: {
@@ -183,7 +183,7 @@ module keyVaultSecret1 '../Bicep/keyvaultsecretiothubconnection.bicep' = {
   }
 }
 
-module keyVaultSecret2 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
+module keyVaultSecret2 '../../Bicep/keyvaultsecretstorageconnection.bicep' = {
   name: 'keyVaultSecret2${deploymentSuffix}'
   dependsOn: [ keyVaultModule, iotHubModule ]
   params: {
@@ -193,7 +193,7 @@ module keyVaultSecret2 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
   }
 }
 
-module keyVaultSecret3 '../Bicep/keyvaultsecretsignalrconnection.bicep' = {
+module keyVaultSecret3 '../../Bicep/keyvaultsecretsignalrconnection.bicep' = {
   name: 'keyVaultSecret3${deploymentSuffix}'
   dependsOn: [ keyVaultModule, signalRModule ]
   params: {
@@ -203,7 +203,7 @@ module keyVaultSecret3 '../Bicep/keyvaultsecretsignalrconnection.bicep' = {
   }
 }
 
-module keyVaultSecret4 '../Bicep/keyvaultsecretcosmosconnection.bicep' = {
+module keyVaultSecret4 '../../Bicep/keyvaultsecretcosmosconnection.bicep' = {
   name: 'keyVaultSecret4${deploymentSuffix}'
   dependsOn: [ keyVaultModule, cosmosModule ]
   params: {
@@ -213,7 +213,7 @@ module keyVaultSecret4 '../Bicep/keyvaultsecretcosmosconnection.bicep' = {
   }
 }
 
-module keyVaultSecret5 '../Bicep/keyvaultsecretservicebusconnection.bicep' = {
+module keyVaultSecret5 '../../Bicep/keyvaultsecretservicebusconnection.bicep' = {
   name: 'keyVaultSecret5${deploymentSuffix}'
   dependsOn: [ keyVaultModule, servicebusModule ]
   params: {
@@ -223,7 +223,7 @@ module keyVaultSecret5 '../Bicep/keyvaultsecretservicebusconnection.bicep' = {
   }
 }
 
-module keyVaultSecret6 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret6 '../../Bicep/keyvaultsecret.bicep' = {
   name: 'keyVaultSecret6${deploymentSuffix}'
   dependsOn: [ keyVaultModule, functionModule ]
   params: {
@@ -233,7 +233,7 @@ module keyVaultSecret6 '../Bicep/keyvaultsecret.bicep' = {
   }
 }
 
-module keyVaultSecret7 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret7 '../../Bicep/keyvaultsecret.bicep' = {
   name: 'keyVaultSecret7${deploymentSuffix}'
   dependsOn: [ keyVaultModule, webSiteModule ]
   params: {
@@ -243,7 +243,7 @@ module keyVaultSecret7 '../Bicep/keyvaultsecret.bicep' = {
   }
 }  
 
-module functionAppSettingsModule '../Bicep/functionappsettings.bicep' = {
+module functionAppSettingsModule '../../Bicep/functionappsettings.bicep' = {
   name: 'functionAppSettings${deploymentSuffix}'
   dependsOn: [ keyVaultSecret1, keyVaultSecret2, keyVaultSecret3, keyVaultSecret4, keyVaultSecret5, keyVaultSecret6, keyVaultSecret7 ]
   params: {
@@ -263,7 +263,7 @@ module functionAppSettingsModule '../Bicep/functionappsettings.bicep' = {
   }
 }
 
-module webSiteAppSettingsModule '../Bicep/websiteappsettings.bicep' = {
+module webSiteAppSettingsModule '../../Bicep/websiteappsettings.bicep' = {
   name: 'webSiteAppSettings${deploymentSuffix}'
   dependsOn: [ keyVaultSecret1, keyVaultSecret2, keyVaultSecret3, keyVaultSecret4, keyVaultSecret5, keyVaultSecret6, keyVaultSecret7 ]
   params: {

@@ -26,7 +26,7 @@ var commonTags = {
 }
 
 // --------------------------------------------------------------------------------
-module resourceNames '../Bicep/resourcenames.bicep' = {
+module resourceNames '../../Bicep/resourcenames.bicep' = {
   name: 'resourcenames${deploymentSuffix}'
   params: {
     orgPrefix: orgPrefix
@@ -37,7 +37,7 @@ module resourceNames '../Bicep/resourcenames.bicep' = {
 }
 
 // --------------------------------------------------------------------------------
-module blobStorageAccountModule '../Bicep/storageaccount2.bicep' = {
+module blobStorageAccountModule '../../Bicep/storageaccount2.bicep' = {
   name: 'storage${deploymentSuffix}'
   params: {
     storageAccountName: resourceNames.outputs.blobStorageAccountName
@@ -47,7 +47,7 @@ module blobStorageAccountModule '../Bicep/storageaccount2.bicep' = {
   }
 }
 
-module logAnalyticsModule '../Bicep/loganalyticsworkspace.bicep' = {
+module logAnalyticsModule '../../Bicep/loganalyticsworkspace.bicep' = {
   name: 'logAnalytics${deploymentSuffix}' 
   params: {
     logAnalyticsWorkspaceName: resourceNames.outputs.logAnalyticsWorkspaceName
@@ -56,7 +56,7 @@ module logAnalyticsModule '../Bicep/loganalyticsworkspace.bicep' = {
   }
 }
 
-module logicAppServiceModule '../Bicep/logicappservice.bicep' = {
+module logicAppServiceModule '../../Bicep/logicappservice.bicep' = {
   name: 'logicappservice${deploymentSuffix}'
   params: {
     logicAppServiceName:  resourceNames.outputs.logicAppServiceName
@@ -67,7 +67,7 @@ module logicAppServiceModule '../Bicep/logicappservice.bicep' = {
   }
 }
 
-module storageAccountRoleModule '../Bicep/storageaccountroles.bicep' = {
+module storageAccountRoleModule '../../Bicep/storageaccountroles.bicep' = {
   name: 'storageaccountroles${deploymentSuffix}' 
   params: {
     logicAppServiceName: logicAppServiceModule.outputs.name
@@ -78,7 +78,7 @@ module storageAccountRoleModule '../Bicep/storageaccountroles.bicep' = {
   }
 }
 
-module keyVaultModule '../Bicep/keyvault.bicep' = {
+module keyVaultModule '../../Bicep/keyvault.bicep' = {
   name: 'keyvault${deploymentSuffix}'
   params: {
     keyVaultName: resourceNames.outputs.keyVaultName
@@ -89,7 +89,7 @@ module keyVaultModule '../Bicep/keyvault.bicep' = {
   }
 }
 
-module keyVaultSecret1 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
+module keyVaultSecret1 '../../Bicep/keyvaultsecretstorageconnection.bicep' = {
   name: 'keyVaultSecret1${deploymentSuffix}'
   dependsOn: [ keyVaultModule, blobStorageAccountModule ]
   params: {
@@ -99,7 +99,7 @@ module keyVaultSecret1 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
   }
 }
 
-module logicAppSettingsModule '../Bicep/logicappsettings.bicep' = {
+module logicAppSettingsModule '../../Bicep/logicappsettings.bicep' = {
   name: 'logicAppSettings${deploymentSuffix}'
   // dependsOn: [  keyVaultSecrets ]
   params: {

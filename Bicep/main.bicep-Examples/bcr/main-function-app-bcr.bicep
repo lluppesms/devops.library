@@ -43,7 +43,7 @@ var svcBusQueueOrders = 'orders-received'
 var svcBusQueueERP =  'orders-to-erp' 
 
 // --------------------------------------------------------------------------------
-module resourceNames '../Bicep/resourcenames.bicep' = {
+module resourceNames '../../Bicep/resourcenames.bicep' = {
   name: 'resourcenames${deploymentSuffix}'
   params: {
     orgPrefix: orgPrefix

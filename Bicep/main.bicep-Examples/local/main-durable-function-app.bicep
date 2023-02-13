@@ -34,7 +34,7 @@ var commonTags = {
 }
 
 // --------------------------------------------------------------------------------
-module resourceNames '../Bicep/resourcenames.bicep' = {
+module resourceNames '../../Bicep/resourcenames.bicep' = {
   name: 'resourcenames${deploymentSuffix}'
   params: {
     orgPrefix: orgPrefix
@@ -47,7 +47,7 @@ module resourceNames '../Bicep/resourcenames.bicep' = {
 }
 
 // --------------------------------------------------------------------------------
-module functionStorageModule '../Bicep/storageaccount.bicep' = {
+module functionStorageModule '../../Bicep/storageaccount.bicep' = {
   name: 'functionstorage${deploymentSuffix}'
   params: {
     storageSku: storageSku
@@ -57,7 +57,7 @@ module functionStorageModule '../Bicep/storageaccount.bicep' = {
   }
 }
 
-module functionModule '../Bicep/functionapp.bicep' = {
+module functionModule '../../Bicep/functionapp.bicep' = {
   name: 'function${deploymentSuffix}'
   dependsOn: [ functionStorageModule ]
   params: {
@@ -77,7 +77,7 @@ module functionModule '../Bicep/functionapp.bicep' = {
   }
 }
 
-module dataStorageModule '../Bicep/storageaccount.bicep' = {
+module dataStorageModule '../../Bicep/storageaccount.bicep' = {
   name: 'datastorage${deploymentSuffix}'
   params: {
     storageAccountName: resourceNames.outputs.dataStorageName
@@ -86,7 +86,7 @@ module dataStorageModule '../Bicep/storageaccount.bicep' = {
     storageSku: storageSku
   }
 }
-module keyVaultModule '../Bicep/keyvault.bicep' = {
+module keyVaultModule '../../Bicep/keyvault.bicep' = {
   name: 'keyvault${deploymentSuffix}'
   dependsOn: [ functionModule ]
   params: {
@@ -98,7 +98,7 @@ module keyVaultModule '../Bicep/keyvault.bicep' = {
   }
 }
 
-module keyVaultSecret1 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret1 '../../Bicep/keyvaultsecret.bicep' = {
   name: 'keyVaultSecret1${deploymentSuffix}'
   dependsOn: [ keyVaultModule, functionModule ]
   params: {
@@ -108,7 +108,7 @@ module keyVaultSecret1 '../Bicep/keyvaultsecret.bicep' = {
   }
 }
 
-module keyVaultSecret2 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret2 '../../Bicep/keyvaultsecret.bicep' = {
   name: 'keyVaultSecret2${deploymentSuffix}'
   dependsOn: [ keyVaultModule, functionModule ]
   params: {
@@ -118,7 +118,7 @@ module keyVaultSecret2 '../Bicep/keyvaultsecret.bicep' = {
   }
 }
 
-module keyVaultSecret3 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret3 '../../Bicep/keyvaultsecret.bicep' = {
   name: 'keyVaultSecret3${deploymentSuffix}'
   dependsOn: [ keyVaultModule, functionModule ]
   params: {
@@ -127,7 +127,7 @@ module keyVaultSecret3 '../Bicep/keyvaultsecret.bicep' = {
     secretValue: twilioPhoneNumber
   }
 }
-module keyVaultSecret4 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
+module keyVaultSecret4 '../../Bicep/keyvaultsecretstorageconnection.bicep' = {
   name: 'keyVaultSecret4${deploymentSuffix}'
   dependsOn: [ keyVaultModule, dataStorageModule ]
   params: {
@@ -136,7 +136,7 @@ module keyVaultSecret4 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
     storageAccountName: dataStorageModule.outputs.name
   }
 }
-module functionAppSettingsModule '../Bicep/functionappsettings.bicep' = {
+module functionAppSettingsModule '../../Bicep/functionappsettings.bicep' = {
   name: 'functionAppSettings${deploymentSuffix}'
   // dependsOn: [  keyVaultSecrets ]
   params: {

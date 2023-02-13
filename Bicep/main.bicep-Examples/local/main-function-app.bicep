@@ -39,7 +39,7 @@ var svcBusQueueOrders = 'orders-received'
 var svcBusQueueERP =  'orders-to-erp' 
 
 // --------------------------------------------------------------------------------
-module resourceNames '../Bicep/resourcenames.bicep' = {
+module resourceNames '../../Bicep/resourcenames.bicep' = {
   name: 'resourcenames${deploymentSuffix}'
   params: {
     orgPrefix: orgPrefix
@@ -53,7 +53,7 @@ module resourceNames '../Bicep/resourcenames.bicep' = {
 }
 
 // --------------------------------------------------------------------------------
-module functionStorageModule '../Bicep/storageaccount.bicep' = {
+module functionStorageModule '../../Bicep/storageaccount.bicep' = {
   name: 'functionstorage${deploymentSuffix}'
   params: {
     storageSku: storageSku
@@ -63,7 +63,7 @@ module functionStorageModule '../Bicep/storageaccount.bicep' = {
   }
 }
 
-module servicebusModule '../Bicep/servicebus.bicep' = {
+module servicebusModule '../../Bicep/servicebus.bicep' = {
   name: 'servicebus${deploymentSuffix}'
   params: {
     serviceBusName: resourceNames.outputs.serviceBusName
@@ -78,7 +78,7 @@ var cosmosContainerArray = [
   { name: cosmosOrdersContainerDbName, partitionKey: cosmosOrdersContainerDbKey }
 ]
 
-module cosmosModule '../Bicep/cosmosdatabase.bicep' = {
+module cosmosModule '../../Bicep/cosmosdatabase.bicep' = {
   name: 'cosmos${deploymentSuffix}'
   params: {
     cosmosAccountName: resourceNames.outputs.cosmosAccountName
@@ -89,7 +89,7 @@ module cosmosModule '../Bicep/cosmosdatabase.bicep' = {
     commonTags: commonTags
   }
 }
-module functionModule '../Bicep/functionapp.bicep' = {
+module functionModule '../../Bicep/functionapp.bicep' = {
   name: 'function${deploymentSuffix}'
   dependsOn: [ functionStorageModule ]
   params: {
@@ -108,7 +108,7 @@ module functionModule '../Bicep/functionapp.bicep' = {
     functionStorageAccountName: functionStorageModule.outputs.name
   }
 }
-module keyVaultModule '../Bicep/keyvault.bicep' = {
+module keyVaultModule '../../Bicep/keyvault.bicep' = {
   name: 'keyvault${deploymentSuffix}'
   dependsOn: [ functionModule ]
   params: {
@@ -119,7 +119,7 @@ module keyVaultModule '../Bicep/keyvault.bicep' = {
     applicationUserObjectIds: [ functionModule.outputs.principalId ]
   }
 }
-module keyVaultSecret1 '../Bicep/keyvaultsecret.bicep' = {
+module keyVaultSecret1 '../../Bicep/keyvaultsecret.bicep' = {
   name: 'keyVaultSecret1${deploymentSuffix}'
   dependsOn: [ keyVaultModule, functionModule ]
   params: {
@@ -128,7 +128,7 @@ module keyVaultSecret1 '../Bicep/keyvaultsecret.bicep' = {
     secretValue: functionModule.outputs.insightsKey
   }
 }
-module keyVaultSecret2 '../Bicep/keyvaultsecretcosmosconnection.bicep' = {
+module keyVaultSecret2 '../../Bicep/keyvaultsecretcosmosconnection.bicep' = {
   name: 'keyVaultSecret2${deploymentSuffix}'
   dependsOn: [ keyVaultModule, cosmosModule ]
   params: {
@@ -137,7 +137,7 @@ module keyVaultSecret2 '../Bicep/keyvaultsecretcosmosconnection.bicep' = {
     cosmosAccountName: cosmosModule.outputs.name
   }
 }
-module keyVaultSecret3 '../Bicep/keyvaultsecretservicebusconnection.bicep' = {
+module keyVaultSecret3 '../../Bicep/keyvaultsecretservicebusconnection.bicep' = {
   name: 'keyVaultSecret3${deploymentSuffix}'
   dependsOn: [ keyVaultModule, servicebusModule ]
   params: {
@@ -147,7 +147,7 @@ module keyVaultSecret3 '../Bicep/keyvaultsecretservicebusconnection.bicep' = {
     accessKeyName: 'send'
   }
 }
-module keyVaultSecret4 '../Bicep/keyvaultsecretservicebusconnection.bicep' = {
+module keyVaultSecret4 '../../Bicep/keyvaultsecretservicebusconnection.bicep' = {
   name: 'keyVaultSecret4${deploymentSuffix}'
   dependsOn: [ keyVaultModule, servicebusModule ]
   params: {
@@ -157,7 +157,7 @@ module keyVaultSecret4 '../Bicep/keyvaultsecretservicebusconnection.bicep' = {
     accessKeyName: 'listen'
   }
 }
-module keyVaultSecret5 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
+module keyVaultSecret5 '../../Bicep/keyvaultsecretstorageconnection.bicep' = {
   name: 'keyVaultSecret5${deploymentSuffix}'
   dependsOn: [ keyVaultModule, functionStorageModule ]
   params: {
@@ -166,7 +166,7 @@ module keyVaultSecret5 '../Bicep/keyvaultsecretstorageconnection.bicep' = {
     storageAccountName: functionStorageModule.outputs.name
   }
 }
-module functionAppSettingsModule '../Bicep/functionappsettings.bicep' = {
+module functionAppSettingsModule '../../Bicep/functionappsettings.bicep' = {
   name: 'functionAppSettings${deploymentSuffix}'
   dependsOn: [ keyVaultSecret1, keyVaultSecret2, keyVaultSecret3, keyVaultSecret4, keyVaultSecret5, functionModule ]
   params: {
