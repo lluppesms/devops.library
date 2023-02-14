@@ -1,9 +1,12 @@
 # ------------------------------------------------------------------------------------------------------------------------
 # Pipeline to deploy bicep file from this repository to an Azure Container Registry 
 # ------------------------------------------------------------------------------------------------------------------------
-# This pipeline needs two variables defined in AzDO:
-#  subscriptionName: 'your subscriptionName'
-#  registryName:     'yourContainerRegistryName'
+# This pipeline needs five variables defined in AzDO:
+#  subscriptionName:   'your subscriptionName'
+#  registryName:       'yourContainerRegistryName'
+#  acrPrincipalId:     'yourServicePrincipalId'      (the service principal object id)
+#  acrPrincipalSecret: 'yourServicePrincipalSecret'  (the client secret value)
+#  acrTenantId:        'yourTenantId'                (the Azure AD Tenant Id)
 # ------------------------------------------------------------------------------------------------------------------------
 name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
 trigger:
@@ -18,24 +21,51 @@ trigger:
  
 pr: none
  
-variables:
-  - name: modulePrefix
-    value: 'bicep/'
+# ------------------------------------------------------------------------------------------------------------------------
+parameters:
   - name: runPsRule
-    value: false
- 
+    displayName: Run PSRule Scan
+    type: boolean
+    default: true
+  - name: publishModules
+    displayName: Publish to Container Registry
+    type: boolean
+    default: true
+
+# ------------------------------------------------------------------------------------------------------------------------
+variables:
+  modulePrefix: 'bicep/'
+  runPsRule: ${{ parameters.runPsRule }}
+  publishModules: ${{ parameters.publishModules }}
+
 pool:
   vmImage: ubuntu-latest
 
 steps:
+- script: az login --service-principal -u $(acrPrincipalId) -p $(acrPrincipalSecret) --tenant $(acrTenantId)
+  displayName: 'az login'
+
+# PSRule is a static analysis tool for Bicep Files
 - task: ps-rule-assert@2
   condition: eq(variables['runPsRule'], 'true') 
   displayName: Run PSRule analysis
   inputs:
     modules: 'PSRule.Rules.Azure'
+    outputFormat: Sarif
+    outputPath: reports/PSRuleOutput.sarif
   continueOnError: true
 
+# To easily view the PSRule Output, add the SARIF SAST Scans Tab extension to your organization
+# https://marketplace.visualstudio.com/items?itemName=sariftools.scans
+- task: PublishBuildArtifacts@1
+  condition: eq(variables['runPsRule'], 'true') 
+  inputs:
+    pathToPublish: reports/PSRuleOutput.sarif
+    artifactName: CodeAnalysisLogs
+
+
 - task: AzureCLI@2
+  condition: eq(variables['publishModules'], 'true') 
   displayName: 'Publish/Update Modules to Registry'
   inputs:
     azureSubscription: $(subscriptionName)
