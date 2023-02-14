@@ -45,6 +45,10 @@ steps:
 - script: az login --service-principal -u $(acrPrincipalId) -p $(acrPrincipalSecret) --tenant $(acrTenantId)
   displayName: 'az login'
 
+- script: git diff-tree --no-commit-id --name-only --diff-filter=ad -r -m $(Build.SourceVersion) 
+  displayName: 'git diff-tree'
+  continueOnError: true
+
 # PSRule is a static analysis tool for Bicep Files
 - task: ps-rule-assert@2
   condition: eq(variables['runPsRule'], 'true') 
@@ -62,10 +66,6 @@ steps:
   inputs:
     pathToPublish: reports/PSRuleOutput.sarif
     artifactName: CodeAnalysisLogs
-
-- script: git diff-tree --no-commit-id --name-only --diff-filter=ad -r -m $(Build.SourceVersion) 
-  displayName: 'git diff-tree'
-  continueOnError: true
 
 - task: AzureCLI@2
   condition: eq(variables['publishModules'], 'true') 
