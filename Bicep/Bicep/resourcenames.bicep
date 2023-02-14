@@ -29,9 +29,9 @@ output webSiteAppInsightsName string =     '${webSiteName}-insights'
 output cosmosAccountName string =          toLower('${sanitizedOrgPrefix}-${sanitizedAppPrefix}-cosmos-${sanitizedEnvironment}${sanitizedAppSuffix}')
 output serviceBusName string =             toLower('${sanitizedOrgPrefix}-${sanitizedAppPrefix}-svcbus-${sanitizedEnvironment}${sanitizedAppSuffix}')
 
-output logicAppServiceName string =                     '${sanitizedOrgPrefix}-${sanitizedAppPrefix}-${sanitizedEnvironment}'
-output logAnalyticsWorkspaceName string =               '${sanitizedOrgPrefix}-${sanitizedAppPrefix}-logs-${sanitizedEnvironment}'
-output blobStorageConnectionName string =               '${sanitizedOrgPrefix}-${sanitizedAppPrefix}blob${sanitizedEnvironment}-blobconnection'
+output logicAppServiceName string =        '${sanitizedOrgPrefix}-${sanitizedAppPrefix}-${sanitizedEnvironment}'
+output logAnalyticsWorkspaceName string =  '${sanitizedOrgPrefix}-${sanitizedAppPrefix}-logs-${sanitizedEnvironment}'
+output blobStorageConnectionName string =  '${sanitizedOrgPrefix}-${sanitizedAppPrefix}blob${sanitizedEnvironment}-blobconnection'
 
 output iotHubName string =                 toLower('${sanitizedOrgPrefix}-${sanitizedAppPrefix}-hub-${sanitizedEnvironment}${sanitizedAppSuffix}')
 output dpsName string =                    toLower('${sanitizedOrgPrefix}-${sanitizedAppPrefix}-dps-${sanitizedEnvironment}${sanitizedAppSuffix}')

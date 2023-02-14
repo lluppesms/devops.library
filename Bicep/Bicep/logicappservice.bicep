@@ -7,6 +7,8 @@ param location string = resourceGroup().location
 param commonTags object = {}
 param logicAnalyticsWorkspaceId string = 'myLogicAnalyticsWorkspaceId'
 param minimumElasticSize int = 1
+@allowed(['Allow','Deny'])
+param allowStorageNetworkAccess string = 'Allow'
 
 // --------------------------------------------------------------------------------
 var templateTag = { TemplateFile: '~logic-app-service.bicep' }
@@ -17,16 +19,39 @@ var tags = union(commonTags, templateTag)
 resource storageResource 'Microsoft.Storage/storageAccounts@2019-06-01' = {
   name: logicAppStorageAccountName
   location: location
-  kind: 'StorageV2'
-  tags: tags
   sku: {
-    name: 'Standard_GRS'
+      name: 'Standard_GRS'
   }
+  tags: tags
+  kind: 'StorageV2'
   properties: {
-    supportsHttpsTrafficOnly: true
-    minimumTlsVersion: 'TLS1_2'
+      networkAcls: {
+          bypass: 'AzureServices'
+          defaultAction: allowStorageNetworkAccess
+          ipRules: []
+          // ipRules: (empty(ipRules) ? json('[]') : ipRules)
+          virtualNetworkRules: []
+          //virtualNetworkRules: ((virtualNetworkType == 'External') ? json('[{"id": "${subscription().id}/resourceGroups/${vnetResource}/providers/Microsoft.Network/virtualNetworks/${vnetResource.name}/subnets/${subnetName}"}]') : json('[]'))
+      }
+      supportsHttpsTrafficOnly: true
+      encryption: {
+          services: {
+              file: {
+                  keyType: 'Account'
+                  enabled: true
+              }
+              blob: {
+                  keyType: 'Account'
+                  enabled: true
+              }
+          }
+          keySource: 'Microsoft.Storage'
+      }
+      accessTier: 'Hot'
+      allowBlobPublicAccess: false
+      minimumTlsVersion: 'TLS1_2'
   }
-  }
+}
 // Dedicated app plan for the service
 resource logicAppPlanResource 'Microsoft.Web/serverfarms@2021-02-01' = {
   name: logicAppServiceName
@@ -124,6 +149,8 @@ resource logicAppSiteResource 'Microsoft.Web/sites@2021-02-01' = {
         }
       ]
       use32BitWorkerProcess: true
+      minTlsVersion: '1.2'
+      ftpsState: 'FtpsOnly'
     }
     serverFarmId: logicAppPlanResource.id
     clientAffinityEnabled: false

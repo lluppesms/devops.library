@@ -41,6 +41,7 @@ resource webSiteResource 'Microsoft.Web/sites@2020-06-01' = {
   properties: {
     serverFarmId: appServiceResource.id
     httpsOnly: true
+    clientAffinityEnabled: false
     siteConfig: {
       linuxFxVersion: linuxFxVersion
       appSettings: []
