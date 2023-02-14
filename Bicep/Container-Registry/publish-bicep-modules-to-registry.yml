@@ -63,6 +63,9 @@ steps:
     pathToPublish: reports/PSRuleOutput.sarif
     artifactName: CodeAnalysisLogs
 
+- script: git diff-tree --no-commit-id --name-only --diff-filter=ad -r -m $(Build.SourceVersion) 
+  displayName: 'git diff-tree'
+  continueOnError: true
 
 - task: AzureCLI@2
   condition: eq(variables['publishModules'], 'true') 
