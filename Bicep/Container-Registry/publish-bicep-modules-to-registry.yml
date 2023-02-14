@@ -21,6 +21,9 @@ trigger:
  
 pr: none
  
+pool:
+  vmImage: ubuntu-latest
+
 # ------------------------------------------------------------------------------------------------------------------------
 parameters:
   - name: runPsRule
@@ -38,12 +41,14 @@ variables:
   runPsRule: ${{ parameters.runPsRule }}
   publishModules: ${{ parameters.publishModules }}
 
-pool:
-  vmImage: ubuntu-latest
-
+# ------------------------------------------------------------------------------------------------------------------------
 steps:
 - script: az login --service-principal -u $(acrPrincipalId) -p $(acrPrincipalSecret) --tenant $(acrTenantId)
   displayName: 'az login'
+
+- script: git diff-tree --no-commit-id --name-only --diff-filter=ad -r -m $(Build.SourceVersion) 
+  displayName: 'Show Committed Files'
+  continueOnError: true
 
 # PSRule is a static analysis tool for Bicep Files
 - task: ps-rule-assert@2
@@ -58,11 +63,13 @@ steps:
 # To easily view the PSRule Output, add the SARIF SAST Scans Tab extension to your organization
 # https://marketplace.visualstudio.com/items?itemName=sariftools.scans
 - task: PublishBuildArtifacts@1
+  displayName: Publish PSRule Results
   condition: eq(variables['runPsRule'], 'true') 
   inputs:
     pathToPublish: reports/PSRuleOutput.sarif
     artifactName: CodeAnalysisLogs
 
+# This script will scan your Bicep files and publish them to your container registry if they are new or updated
 - task: AzureCLI@2
   condition: eq(variables['publishModules'], 'true') 
   displayName: 'Publish/Update Modules to Registry'
@@ -107,7 +114,7 @@ steps:
       }
 
       Write-Host "-------------------------------------------------------------"
-      Write-Host "Searching for existing modules to update..."
+      Write-Host "Searching commit for existing modules to update for commit $(Build.SourceVersion)..."
       git diff-tree --no-commit-id --name-only --diff-filter=ad -r -m $(Build.SourceVersion) | Where-Object {$_.EndsWith('.bicep')} | Foreach-Object {
         $moduleName = ($_ | Resolve-Path -Relative) -replace "^./" -replace '\..*'
         If (-not ($moduleName ?? @()).Contains(('main.bicep'))) {

@@ -12,7 +12,7 @@ param allowAnonymousPull bool = false
 param commonTags object = {}
 
 // ----------------------------------------------------------------------------------------------------
-var templateTag = { TemplateFile: '~containerregistry.bicep' }
+var templateTag = { TemplateFile: '~container-registry.bicep' }
 var tags = union(commonTags, templateTag)
 
 // ----------------------------------------------------------------------------------------------------
