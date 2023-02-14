@@ -91,7 +91,7 @@ steps:
       Write-Host "-------------------------------------------------------------"
       Write-Host "Searching for new modules to add..."
       $publishedModules = $(az acr repository list --name $(registryName) --query "[?contains(@, '${modulePrefix}')]" -o tsv)
-      Get-ChildItem -Recurse -Path ./Bicep/*.bicep | Foreach-Object {
+      Get-ChildItem -Recurse -Path ./Bicep/Bicep/*.bicep | Foreach-Object {
         $moduleCount += 1
         $filename = ($_ | Resolve-Path -Relative) -replace "^./" -replace '\..*'
         $lowerfilename = $filename.ToLower().replace("bicep/", "").replace("Bicep/", "").replace("modules/", "")

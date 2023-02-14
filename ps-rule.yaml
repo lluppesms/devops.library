@@ -55,7 +55,7 @@ output:
 input:
   pathIgnore:
   # Exclude main bicep examples as they just reference existing files via modules.
-  - 'azd/**/*.*'
+  - 'azd/infra/*.*'
   - 'azdo/**/*.*'
   - 'github/**/*.*'
   - 'Bicep/main.bicep-Examples/**/*.bicep'
@@ -64,6 +64,7 @@ input:
   - 'bicep.config'
   # Exclude files with these extensions
   - '*.md'
+  - '*.png'
   - '*.yml'
   - '*.yaml'
   - '*.ps1'

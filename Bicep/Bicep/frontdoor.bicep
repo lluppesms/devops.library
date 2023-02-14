@@ -1,4 +1,6 @@
-// Create or update a Front Door
+// ----------------------------------------------------------------------------------------------------
+// This BICEP file will create an Azure Front Door
+// ----------------------------------------------------------------------------------------------------
 targetScope = 'resourceGroup'
 
 // ----------------------------------------------------------------------------------------------------
@@ -28,10 +30,11 @@ param diagnosticLogs array = [
 ]
 
 @description('Tags to apply to the resource.')
-param tags object = {}
+param commonTags object = {}
 
 // ----------------------------------------------------------------------------------------------------
-var allTags = union(resourceGroup().tags, tags)
+var templateTag = { TemplateFile: '~frontdoor.bicep' }
+var tags = union(templateTag, commonTags)
 var skuName = '${sku}_AzureFrontDoor'
 
 // ----------------------------------------------------------------------------------------------------
@@ -46,7 +49,7 @@ resource profile 'Microsoft.Cdn/profiles@2021-06-01' = {
   properties: {
     originResponseTimeoutSeconds: 60
   }
-  tags: allTags
+  tags: tags
 }
 
 @description('Configure diagnostics logs to send to a workspace.')
@@ -80,12 +83,9 @@ resource certificate 'Microsoft.Cdn/profiles/secrets@2021-06-01' = [for item in 
 // ----------------------------------------------------------------------------------------------------
 @description('A unique identifier for the Front Door.')
 output id string = profile.id
-
 @description('The name of the Resource Group where the Front Door is deployed.')
 output resourceGroupName string = resourceGroup().name
-
 @description('The guid for the subscription where the Front Door is deployed.')
 output subscriptionId string = subscription().subscriptionId
-
 @description('A unique guid for the Front Door included in forwarded headers.')
 output frontDoorId string = profile.properties.frontDoorId
