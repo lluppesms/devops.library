@@ -17,6 +17,6 @@ module registry '../Bicep/containerregistry.bicep' = {
   params: {
     containerRegistryName: registryName
     location: location
-    skuName: 'Basic'
+    skuName: 'Premium'
   }
 }

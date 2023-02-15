@@ -7,7 +7,7 @@ param location string = resourceGroup().location
 param skuName string = 'Premium'
 param enableSystemAssignedManagedIdentity bool = true
 param enableAdminUser bool = false
-param enableDataEndpoint bool = false
+//param enableDataEndpoint bool = false
 param allowAnonymousPull bool = false
 param commonTags object = {}
 
@@ -26,7 +26,7 @@ resource registry 'Microsoft.ContainerRegistry/registries@2022-02-01-preview' = 
   properties: {
     adminUserEnabled: enableAdminUser
     anonymousPullEnabled: allowAnonymousPull
-    dataEndpointEnabled: enableDataEndpoint
+    //dataEndpointEnabled: enableDataEndpoint
   }
   identity: {
    type: enableSystemAssignedManagedIdentity ? 'SystemAssigned' : 'None'

@@ -1,5 +1,5 @@
 // ----------------------------------------------------------------------------------------------------
-// This BICEP file will create an Azure Front Door
+// This BICEP file will create an Azure Front Door Resource
 // ----------------------------------------------------------------------------------------------------
 targetScope = 'resourceGroup'
 
