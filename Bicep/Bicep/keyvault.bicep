@@ -13,6 +13,11 @@ param adminUserObjectIds array = []
 @description('Application that should have access to read key vault secrets')
 param applicationUserObjectIds array = []
 
+@description('Administrator UserId that should have access to administer key vault')
+param keyVaultOwnerUserId string = ''
+@description('Ip Address of the KV owner so they can read the vault, such as 254.254.254.254/32')
+param keyVaultOwnerIpAddress string = ''
+
 @description('Determines if Azure can deploy certificates from this Key Vault.')
 param enabledForDeployment bool = true
 @description('Determines if templates can reference secrets from this Key Vault.')
@@ -28,6 +33,11 @@ param softDeleteRetentionInDays int = 7
 @description('Determines if access to the objects granted using RBAC. When true, access policies are ignored.')
 param useRBAC bool = false
 
+@allowed(['Enabled','Disabled'])
+param publicNetworkAccess string = 'Enabled'
+@allowed(['Allow','Deny'])
+param allowNetworkAccess string = 'Allow'
+
 // @description('The workspace to store audit logs.')
 // @metadata({
 //   strongType: 'Microsoft.OperationalInsights/workspaces'
@@ -39,6 +49,17 @@ param useRBAC bool = false
 var templateTag = { TemplateFile: '~keyVault.bicep' }
 var tags = union(commonTags, templateTag)
 
+var owerAccessPolicy = keyVaultOwnerUserId == '' ? [] : [
+  {
+    objectId: keyVaultOwnerUserId
+    tenantId: subscription().tenantId
+    permissions: {
+      certificates: [ 'all' ]
+      secrets: [ 'all' ]
+      keys: [ 'all' ]
+    }
+  } 
+]
 var adminAccessPolicies = [for adminUser in adminUserObjectIds: {
   objectId: adminUser
   tenantId: subscription().tenantId
@@ -55,7 +76,13 @@ var applicationUserPolicies = [for appUser in applicationUserObjectIds: {
     secrets: [ 'get' ]
   }
 }]
-var accessPolicies = union(adminAccessPolicies, applicationUserPolicies)
+var accessPolicies = union(owerAccessPolicy, adminAccessPolicies, applicationUserPolicies)
+
+var kvIpRules = keyVaultOwnerIpAddress == '' ? [] : [
+  {
+    value: keyVaultOwnerIpAddress
+  }
+] 
 
 // --------------------------------------------------------------------------------
 resource keyvaultResource 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
@@ -83,9 +110,12 @@ resource keyvaultResource 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
     createMode: 'default'               // Creating or updating the key vault (not recovering)
 
     softDeleteRetentionInDays: softDeleteRetentionInDays
+    publicNetworkAccess: publicNetworkAccess   // Allow access from all networks
     networkAcls: {
-      defaultAction: 'Allow'
       bypass: 'AzureServices'
+      defaultAction: allowNetworkAccess
+      ipRules: kvIpRules
+      virtualNetworkRules: []
     }
   }
 }

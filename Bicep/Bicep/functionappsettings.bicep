@@ -6,7 +6,9 @@ param functionStorageAccountName string = 'myfunctionstoragename'
 param functionInsightsKey string = 'myKey'
 param customAppSettings object = {}
 
-resource storageAccountResource 'Microsoft.Storage/storageAccounts@2019-06-01' existing = { name: functionStorageAccountName }
+resource storageAccountResource 'Microsoft.Storage/storageAccounts@2019-06-01' existing = { 
+  name: functionStorageAccountName 
+}
 var storageAccountConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storageAccountResource.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${listKeys(storageAccountResource.id, storageAccountResource.apiVersion).keys[0].value}'
 
 var BASE_SLOT_APPSETTINGS = {
@@ -25,7 +27,12 @@ var BASE_SLOT_APPSETTINGS = {
 // resource appResource 'Microsoft.Web/sites@2021-03-01' existing = { name: functionAppName }
 // var BASE_SLOT_APPSETTINGS = list('${appResource.id}/config/appsettings', appResource.apiVersion).properties
 
+resource functionApp 'Microsoft.Web/sites@2021-02-01' existing = {
+  name: functionAppName
+}
+
 resource siteConfig 'Microsoft.Web/sites/config@2021-02-01' = {
-  name: '${functionAppName}/appsettings'
+  name: 'appsettings'
+  parent: functionApp
   properties: union(BASE_SLOT_APPSETTINGS, customAppSettings)
 }

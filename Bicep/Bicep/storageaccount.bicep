@@ -2,9 +2,15 @@
 // This BICEP file will create storage account
 // FYI: To purge a storage account with soft delete enabled: > az storage account purge --name storeName
 // --------------------------------------------------------------------------------
+// To deploy this Bicep manually:
+// 	 az login   (do this if not already logged in)
+//   az account set --subscription 1bd3dfe5-ddd8-443c-8d35-31cf3d729c8f
+//   az deployment group create -n lll-storage -g RG-BICEP-WORKSHOP-01 -f 'storageaccount.bicep' -p storageAccountName=lllstoragedemo
+// --------------------------------------------------------------------------------
 param storageAccountName string = 'mystorageaccountname'
 param location string = resourceGroup().location
 param commonTags object = {}
+
 @allowed([ 'Standard_LRS', 'Standard_GRS', 'Standard_RAGRS' ])
 param storageSku string = 'Standard_LRS'
 param storageAccessTier string = 'Hot'
