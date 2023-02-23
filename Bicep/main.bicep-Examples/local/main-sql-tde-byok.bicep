@@ -1,10 +1,13 @@
 // --------------------------------------------------------------------------------
-// Main Bicep file that deploys an Azure SQL Database with BYOK TDE enabled
+// Main Bicep file that deploys the Azure Resources for an Azure SQL Database
 // --------------------------------------------------------------------------------
 // To deploy this Bicep manually:
 // 	 az login
 //   az account set --subscription <subscriptionId>
-//   az deployment group create -n cli-sqldb-deploy-20230223T080000Z -g rg_sqldb -f 'main.bicep' -p orgName=xxx appName=byok environmentCode=dev adminLoginUser=yourUser@yourcompany.com adminLoginSid=<yourUserSid> adminLoginTenantId=<yourAdTenantId>
+//   Deploy a SQL Database with BYOK TDE:
+//     az deployment group create -n cli-sqldb-deploy-20230223T080000Z -g rg_sqldb -f 'main.bicep' -p enableBYOKTDE=true  orgName=xxx appName=byoktde environmentCode=dev adminLoginUserId=you@yourcompany.com adminLoginUserSid=<yourObjectSID> adminLoginTenantId=<yourTenantId>
+//   Deploy a SQL Database with System Managed TDE:
+//     az deployment group create -n cli-sqldb-deploy-20230223T080000Z -g rg_sqldb -f 'main.bicep' -p enableBYOKTDE=false orgName=xxx appName=systde  environmentCode=dev adminLoginUserId=you@yourcompany.com adminLoginUserSid=<yourObjectSID> adminLoginTenantId=<yourTenantId>
 // --------------------------------------------------------------------------------
 param orgName string = 'org'
 param appName string = 'app'
@@ -14,13 +17,14 @@ param databaseName string = 'myDatabase'
 @allowed(['Standard','Premium','BusinessCritical'])
 param sqlDbTier string = 'Standard'
 param location string = resourceGroup().location
-param adminLoginUser string = ''
-param adminLoginSid string = ''
+param adminLoginUserId string = ''
+param adminLoginUserSid string = ''
 param adminLoginTenantId string = ''
-param runDateTime string = utcNow()
-// param sqldbAdminLogin string = ''
+// param sqldbAdminUserId string = ''
 // @secure()
 // param sqldbAdminPassword string = ''
+param enableBYOKTDE bool = false
+param runDateTime string = utcNow()
 
 // --------------------------------------------------------------------------------
 var deploymentSuffix = '-${runDateTime}'
@@ -49,41 +53,49 @@ module sqldbModule '../../Bicep/sqlserver.bicep' = {
     sqlDbTier: sqlDbTier
     location: location
     commonTags: commonTags
-    adAdminLoginUser: adminLoginUser
-    adAdminLoginSid: adminLoginSid
-    adAdminLoginTenantId: adminLoginTenantId
-    // localAdminLogin: sqldbAdminLogin
-    // localAdminPassword: sqldbAdminPassword
+    adAdminUserId: adminLoginUserId
+    adAdminUserSid: adminLoginUserSid
+    adAdminTenantId: adminLoginTenantId
+    // sqldbAdminUserId: sqldbAdminUserId
+    // sqldbAdminPassword: sqldbAdminPassword
   }
 }
 
-module keyVaultModule '../../Bicep/keyvault.bicep' = {
+// <if enableBYOKTDE> --------------------------------------------------------------------------------
+module keyVaultModule '../../Bicep/keyvault.bicep' = if (enableBYOKTDE) {
   name: 'keyvault${deploymentSuffix}'
   dependsOn: [ sqldbModule ]
   params: {
     keyVaultName: resourceNames.outputs.keyVaultName
     location: location
     commonTags: commonTags
-    adminUserObjectIds: [ adminLoginSid ]
+    adminUserObjectIds: [ adminLoginUserSid ]
     applicationUserObjectIds: [ sqldbModule.outputs.serverPrincipalId ]
   }
 }
+var tdeKeyVaultName = enableBYOKTDE ? keyVaultModule.outputs.name : ''
 
-module keyVaultKeySqlDte '../../Bicep/keyvaultkeysqldte.bicep' = {
+module keyVaultKeySqlDte '../../Bicep/keyvaultkeysqldte.bicep' = if (enableBYOKTDE) {
   name: 'keyVaultKeyDte${deploymentSuffix}'
+  dependsOn: [ keyVaultModule, sqldbModule ]
   params: {
-    keyVaultName: keyVaultModule.outputs.name
-    keyName: 'sqlserver-keyvault-encryption'
+    keyVaultName: tdeKeyVaultName
+    keyName: '${resourceNames.outputs.sqlServerName}-tde-encryption-key'
   }
 }
+var tdeKeyName = enableBYOKTDE ? keyVaultKeySqlDte.outputs.name : ''
+var tdeKeyUri = enableBYOKTDE ? keyVaultKeySqlDte.outputs.keyUriWithVersion : ''
+var tdeKeyVersion = enableBYOKTDE ? keyVaultKeySqlDte.outputs.keyVersion : ''
 
-module sqlDbEncryption '../../Bicep/sqlserverbyoktde.bicep' = {
+module sqlDbEncryption '../../Bicep/sqlserverbyoktde.bicep' = if (enableBYOKTDE) {
   name: 'sql-server-tde${deploymentSuffix}'
+  dependsOn: [ keyVaultModule, sqldbModule ]
   params: {
     sqlServerName: sqldbModule.outputs.serverName
-    keyVaultName: keyVaultModule.outputs.name
-    keyName: keyVaultKeySqlDte.outputs.name
-    keyUri: keyVaultKeySqlDte.outputs.keyUriWithVersion
-    keyVersion: keyVaultKeySqlDte.outputs.keyVersion
+    keyVaultName: tdeKeyVaultName
+    keyName: tdeKeyName
+    keyUri: tdeKeyUri
+    keyVersion: tdeKeyVersion
   }
 }
+// </if enableBYOKTDE> --------------------------------------------------------------------------------

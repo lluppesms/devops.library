@@ -5,19 +5,27 @@ param sqlServerName string = uniqueString('sql', resourceGroup().id)
 param sqlDBName string = 'SampleDB'
 @allowed(['Standard','Premium','BusinessCritical'])
 param sqlDbTier string = 'Standard'
-// param localAdminLogin string
-// @secure()
-// param localAdminPassword string
-param adAdminLoginUser string = 'somebody@somedomain.com'
-param adAdminLoginSid string = '12345678-1234-1234-1234-123456789012'
-param adAdminLoginTenantId string = '12345678-1234-1234-1234-123456789012'
-
+param adAdminUserId string = 'somebody@somedomain.com'
+param adAdminUserSid string = '12345678-1234-1234-1234-123456789012'
+param adAdminTenantId string = '12345678-1234-1234-1234-123456789012'
 param location string = resourceGroup().location
 param commonTags object = {}
+// param sqldbAdminUserId string
+// @secure()
+// param sqldbAdminPassword string
 
 // --------------------------------------------------------------------------------
 var templateTag = { TemplateFile: '~sqlserver.bicep' }
 var tags = union(commonTags, templateTag)
+var adminDefinition = adAdminUserId == '' ? {} : {
+  administratorType: 'ActiveDirectory'
+  principalType: 'Group'
+  login: adAdminUserId
+  sid: adAdminUserSid
+  tenantId: adAdminTenantId
+  azureADOnlyAuthentication: true
+} 
+var primaryUser =  adAdminUserId == '' ? '' : adAdminUserId
 
 // --------------------------------------------------------------------------------
 resource sqlServerResource 'Microsoft.Sql/servers@2022-05-01-preview' = {
@@ -25,23 +33,15 @@ resource sqlServerResource 'Microsoft.Sql/servers@2022-05-01-preview' = {
   location: location
   tags: tags
   properties: {
-    // administratorLogin: localAdminLogin
-    // administratorLoginPassword: localAdminPassword
-    administrators: {
-      administratorType: 'ActiveDirectory'
-      principalType: 'Group'
-      login: adAdminLoginUser
-      sid: adAdminLoginSid
-      tenantId: adAdminLoginTenantId
-      azureADOnlyAuthentication: true // AAD only authentication enabled
-    }
-
-    //keyId: 'string' // A CMK URI of the key to use for encryption.
+    administrators: adminDefinition
+    primaryUserAssignedIdentityId: primaryUser
     minimalTlsVersion: '1.2'
-    //primaryUserAssignedIdentityId: 'string' // The resource id of a user assigned identity to be used by default.
     publicNetworkAccess: 'Disabled'
     restrictOutboundNetworkAccess: 'Enabled'
-    version: '12.0' // the version of the server
+    version: '12.0'
+    // administratorLogin: sqldbAdminUserId
+    // administratorLoginPassword: sqldbAdminPassword
+    //keyId: 'string' // A CMK URI of the key to use for encryption.
   }
   identity: {
     type: 'SystemAssigned'
