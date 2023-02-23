@@ -26,6 +26,7 @@ output webSiteName string =                webSiteName
 output webSiteAppServicePlanName string =  '${webSiteName}-appsvc'
 output webSiteAppInsightsName string =     '${webSiteName}-insights'
 
+output sqlServerName string =              toLower('${sanitizedOrgPrefix}${sanitizedAppPrefix}sql${sanitizedEnvironment}${sanitizedAppSuffix}')
 output cosmosAccountName string =          toLower('${sanitizedOrgPrefix}-${sanitizedAppPrefix}-cosmos-${sanitizedEnvironment}${sanitizedAppSuffix}')
 output serviceBusName string =             toLower('${sanitizedOrgPrefix}-${sanitizedAppPrefix}-svcbus-${sanitizedEnvironment}${sanitizedAppSuffix}')
 

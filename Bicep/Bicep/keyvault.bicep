@@ -74,6 +74,7 @@ var applicationUserPolicies = [for appUser in applicationUserObjectIds: {
   tenantId: subscription().tenantId
   permissions: {
     secrets: [ 'get' ]
+    keys: [ 'get', 'wrapKey', 'unwrapKey' ] // Azure SQL uses these permissions to access TDE key
   }
 }]
 var accessPolicies = union(owerAccessPolicy, adminAccessPolicies, applicationUserPolicies)
