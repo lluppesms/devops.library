@@ -1,11 +1,11 @@
 # ------------------------------------------------------------------------------------------------------------------------
-# GHA Workflow to deploy Function App Only
+# GHA Workflow to deploy Azure Resources and Website App
 # ------------------------------------------------------------------------------------------------------------------------
 # You need to set up secrets in the GitHub Secrets Repository before running these workflows.
 #   See readme.md for details
 # ------------------------------------------------------------------------------------------------------------------------
-name: deploy.functionapp
-on:
+name: deploy.infra.and.website
+on: 
   workflow_dispatch:
     inputs:
       logLevel:
@@ -20,27 +20,39 @@ on:
 
 jobs:
 # ------------------------------------------------------------------------------------------------------------------------
-  build-app:
-    name: Build Function App
-    uses: ./.github/workflows/template-function-app-build.yml
-    secrets: inherit
-    with:
-      envCode: 'demo'
-      rootDirectory: 'src/AzureFunctionsDemo'
+  # scan-code:
+  #   name: Scan Source Code
+  #   uses: ./.github/workflows/template-scan-code.yml
 
 # ------------------------------------------------------------------------------------------------------------------------
-  deploy-demo:
-    name: Deploy Function App
-    needs: build-app
-    uses: ./.github/workflows/template-function-app-deploy.yml
+  build-app:
+    name: Build Website App
+    uses: ./.github/workflows/template-website-app-build.yml
     secrets: inherit
     with:
-      envCode: 'demo'
+      envCode: 'dev'
+      rootDirectory: 'src/DadABase.Web'
+      projectName: 'DadABase.Web.csproj'
+      testDirectory: 'src/DadABase.Tests'
+      testProjectName: 'DadABase.Tests.csproj'
+      testApplication: true
+      listFilesAfterBuild: true
 
-  # deploy-qa:
-  #   name: Deploy Function App
-  #   needs: deploy-demo
-  #   uses: ./.github/workflows/template-function-app-deploy.yml
-  #   secrets: inherit
-  #   with:
-  #     envCode: 'qa'
+# ------------------------------------------------------------------------------------------------------------------------
+  infra-dev:
+    name: Create DEV Infra
+    needs: build-app
+    uses: ./.github/workflows/template-create-infra.yml
+    secrets: inherit
+    with:
+      envCode: 'dev'
+
+# ------------------------------------------------------------------------------------------------------------------------
+  deploy-dev:
+    name: Deploy Website App
+    needs: infra-dev
+    uses: ./.github/workflows/template-website-app-deploy.yml
+    secrets: inherit
+    with:
+      envCode: 'dev'
+

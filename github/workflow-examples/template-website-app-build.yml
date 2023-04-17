@@ -1,0 +1,100 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# GHA Reusable Called Workflow to build a Website App
+# ------------------------------------------------------------------------------------------------------------------------
+# You need to set up secrets in the GitHub Secrets Repository before running these workflows.
+#   See readme.md for details
+# ------------------------------------------------------------------------------------------------------------------------
+name: template.website.build
+run-name: Build Website App
+on:
+  workflow_call:
+    inputs:
+      envCode:
+        required: true
+        type: string
+      rootDirectory:
+        required: true
+        type: string
+      projectName:
+        required: true
+        type: string
+      testDirectory:
+        required: false
+        type: string
+      testProjectName:
+        required: false
+        type: string
+      listFilesAfterBuild:
+        required: false
+        type: boolean
+        default: false
+      testApplication:
+        required: false
+        type: boolean
+        default: false
+  
+# ------------------------------------------------------------------------------------------------------------------------
+jobs:
+  build:
+    name: Build
+    # Note: Publish test results action only works on Linux build servers...
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.envCode }}
+    env:
+      CONFIGURATION: Release
+      DOTNET_CORE_VERSION: 7.0.x
+      artifactName: websiteapp
+      AZURE_WEBAPP_PACKAGE_PATH: ./output
+
+    # Note: Publish test results action needs permission to write a check
+    # You may have to change the default settings for the repo for this to work. You may get the error:
+    #   The nested job 'Build' is requesting 'checks: write, issues: read, pull-requests: read', but is only allowed 'checks: none, issues: none, pull-requests: none'.
+    # Go to Repo Settings -> Actions -> General -> Workflow permissions -> Check: Read and Write Permissions
+    permissions:
+      contents: read
+      issues: read
+      checks: write
+      pull-requests: read
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_CORE_VERSION }}
+
+    - name: Restore Dependencies
+      run: dotnet restore "${{ inputs.rootDirectory }}"
+
+    - name: Build Application
+      run: dotnet build "${{ inputs.rootDirectory }}/${{ inputs.projectName }}" --configuration Release --no-restore
+
+    - name: Test Application
+      if: inputs.testApplication == true
+      run: dotnet test "${{ inputs.testDirectory }}/${{ inputs.testProjectName }}" --logger trx
+      continue-on-error: true
+
+    - name: Publish Test Results
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      if: inputs.testApplication == true
+      with:
+        files: |
+          **/TestResults/**/*.trx
+      continue-on-error: true
+
+    - name: Publish
+      run: dotnet publish "${{ inputs.rootDirectory }}/${{ inputs.projectName }}" --configuration ${{ env.CONFIGURATION }} --no-build --output "${{ env.AZURE_WEBAPP_PACKAGE_PATH }}"
+
+    - name: Save Publish Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ env.artifactName }}
+        path: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+
+    - name: List All Files
+      if: inputs.listFilesAfterBuild == true
+      run: 
+        tree ${{ env.GITHUB_ACTION_PATH }}

@@ -12,21 +12,6 @@ on:
       envCode:
         required: true
         type: string
-      location:
-        required: false
-        type: string
-      storageSku:
-        required: false
-        type: string
-      functionAppSku:
-        required: false
-        type: string
-      functionAppSkuFamily:
-        required: false
-        type: string
-      functionAppSkuTier:
-        required: false
-        type: string
 
 # ------------------------------------------------------------------------------------------------------------------------
 jobs:
@@ -37,24 +22,23 @@ jobs:
       name: ${{ inputs.envCode }}
     
     env:
-      generatedAppEnvName: ${{ secrets.APP_NAME }}-${{ inputs.envCode }}
-      generatedResourceGroupName: rg-${{ secrets.APP_NAME }}-${{ inputs.envCode }}
+      generatedAppEnvName: ${{ vars.APP_NAME }}-${{ inputs.envCode }}
+      generatedResourceGroupName: ${{ vars.RESOURCE_GROUP_PREFIX }}_${{ inputs.envCode }}
 
     steps:
     - name: Display Variables
       run: |-
         echo "generatedAppEnvName=${{ env.generatedAppEnvName }}"
         echo "generatedResourceGroupName=${{ env.generatedResourceGroupName }}"
-        echo "appName=${{ secrets.APP_NAME }}"
-        echo "location=${{ inputs.location }}"
-        echo "storageSku=${{ inputs.storageSku }}"
-        echo "functionAppSku=${{ inputs.functionAppSku }}"
-        echo "functionAppSkuFamily=${{ inputs.functionAppSkuFamily }}"
-        echo "functionAppSkuTier=${{ inputs.functionAppSkuTier }}"
+        echo "environmentCode=${{ inputs.envCode }}"
+        echo "location=${{ vars.AZURE_LOCATION }}"
+        echo "appName=${{ vars.APP_NAME }}"
+        echo "keyVaultOwnerUserId=${{ vars.KEYVAULT_OWNER_USERID }}"
+        echo "webSiteSku=${{ vars.WEBSITE_SKU }}"
         echo "Resource Group Command:"
-        echo "  az group create --name ${{ env.generatedResourceGroupName }} --location ${{ inputs.location }} --tags Application=${{ secrets.APP_NAME }} Environment=${{ inputs.envCode }}"
+        echo "  az group create --name ${{ env.generatedResourceGroupName }} --location ${{ vars.AZURE_LOCATION }} --tags Application=${{ vars.APP_NAME }} Environment=${{ inputs.envCode }}"
         echo "Bicep Deploy Sample Command:"
-        echo "  az deployment group create -n main-deploy-${{ env.runDateTimeZ }} --resource-group ${{ env.generatedResourceGroupName }} --template-file 'main.bicep' --parameters environment=${{ inputs.envCode }} location=${{ inputs.location }} appName=${{ secrets.APP_NAME }} keyVaultOwnerUserId=${{ env.keyVaultOwnerUserId }}"
+        echo "  az deployment group create -n main --resource-group ${{ env.generatedResourceGroupName }} --template-file 'main.bicep'             --parameters environmentCode=${{ inputs.envCode }} location=${{ vars.AZURE_LOCATION }} appName=${{ vars.APP_NAME }} keyVaultOwnerUserId=${{ vars.KEYVAULT_OWNER_USERID }} webSiteSku=${{ vars.WEBSITE_SKU }} "
         echo "Pipeline Workspace Directory Contents:"
         tree ${{ env.GITHUB_ACTION_PATH }}
       continue-on-error: true
@@ -74,21 +58,19 @@ jobs:
 
     - name: Create Resource Group
       run: 
-        az group create --name ${{ env.generatedResourceGroupName }} --location ${{ inputs.location }} --tags Environment=${{ inputs.envCode }} Application=${{ secrets.APP_NAME }}
+        az group create --name ${{ env.generatedResourceGroupName }} --location ${{ vars.AZURE_LOCATION }} --tags Environment=${{ inputs.envCode }} Application=${{ vars.APP_NAME }}
 
     - name: Deploy Azure Resources
       uses: azure/arm-deploy@v1
       with:
-        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        scope: resourcegroup
         resourceGroupName: ${{ env.generatedResourceGroupName }}
         template: infra/Bicep/main.bicep
         parameters: >
           environmentCode=${{ inputs.envCode }}
-          location=${{ inputs.location }}
-          appName=${{ secrets.APP_NAME }}
+          location=${{ vars.AZURE_LOCATION }}
+          appName=${{ vars.APP_NAME }}
           keyVaultOwnerUserId=${{ secrets.KEYVAULT_OWNER_USERID }}
-          storageSku=${{ inputs.storageSku }}
-          functionAppSku=${{ inputs.functionAppSku }}
-          functionAppSkuFamily=${{ inputs.functionAppSkuFamily }}
-          functionAppSkuTier=${{ inputs.functionAppSkuTier }}
+          storageSku=${{ vars.STORAGE_SKU }}
+          webSiteSku=${{ vars.WEBSITE_SKU }}
       

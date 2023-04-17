@@ -1,3 +1,6 @@
+// --------------------------------------------------------------------------------
+// Bicep file that builds all the resource names used by other Bicep templates
+// --------------------------------------------------------------------------------
 param orgPrefix string = 'org'
 param appPrefix string = 'app'
 @allowed(['dev','demo','qa','stg','prod'])

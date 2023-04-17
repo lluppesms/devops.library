@@ -1,24 +1,24 @@
 // --------------------------------------------------------------------------------
-// This BICEP file will create a KeyVault secret for Cosmos
+// This BICEP file will create KeyVault secret for a computer vision account
 // --------------------------------------------------------------------------------
 param keyVaultName string = 'mykeyvaultname'
 param keyName string = 'mykeyname'
-param cosmosAccountName string = 'mycosmosname'
+param computerVisionName string = 'mycomputervisionname'
 param enabledDate string = utcNow()
 param expirationDate string = dateTimeAdd(utcNow(), 'P10Y')
 
 // --------------------------------------------------------------------------------
-resource cosmosResource 'Microsoft.DocumentDB/databaseAccounts@2022-02-15-preview' existing = { name: cosmosAccountName }
-var cosmosKey = cosmosResource.listKeys().primaryMasterKey
-var cosmosConnectionString = 'AccountEndpoint=https://${cosmosAccountName}.documents.azure.com:443/;AccountKey=${cosmosKey}'
+resource computerVisionResource 'Microsoft.CognitiveServices/accounts@2022-10-01' existing = { name: computerVisionName }
+//var computerVisionKey = '${listKeys(computerVisionResource.id, computerVisionResource.apiVersion).key1}'
+var computerVisionKey = computerVisionResource.listKeys().key1
 
 // --------------------------------------------------------------------------------
 resource keyvaultResource 'Microsoft.KeyVault/vaults@2021-11-01-preview' existing = { 
   name: keyVaultName
-  resource cosmosSecret 'secrets' = {
+  resource storageSecret 'secrets' = {
     name: keyName
     properties: {
-      value: cosmosConnectionString
+      value: computerVisionKey
       attributes: {
         exp: dateTimeToEpoch(expirationDate)
         nbf: dateTimeToEpoch(enabledDate)

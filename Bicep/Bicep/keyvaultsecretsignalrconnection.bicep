@@ -9,7 +9,7 @@ param expirationDate string = dateTimeAdd(utcNow(), 'P10Y')
 
 // --------------------------------------------------------------------------------
 resource signalRResource 'Microsoft.SignalRService/SignalR@2022-02-01' existing = { name: signalRName }
-var signalRKey = '${listKeys(signalRResource.id, signalRResource.apiVersion).primaryKey}'
+var signalRKey = signalRResource.listKeys().primaryKey
 var signalRConnectionString = 'Endpoint=https://${signalRName}.service.signalr.net;AccessKey=${signalRKey};Version=1.0;'
 
 // --------------------------------------------------------------------------------

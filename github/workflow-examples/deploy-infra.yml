@@ -2,7 +2,7 @@
 # GHA Workflow to deploy Azure Resources Only
 # ------------------------------------------------------------------------------------------------------------------------
 # You need to set up secrets in the GitHub Secrets Repository before running these workflows.
-#   See Docs\CreateGitHubSecrets\.md for details
+#   See readme.md for details
 # ------------------------------------------------------------------------------------------------------------------------
 name: deploy.infra
 on: 
@@ -20,27 +20,22 @@ on:
 
 # ------------------------------------------------------------------------------------------------------------------------
 jobs:
-  infra-demo:
-    name: Create Infra
+  infra-dev:
+    name: Create DEV Infra
     uses: ./.github/workflows/template-create-infra.yml
     secrets: inherit
     with:
-      envCode: 'demo'
-      location: 'eastus'
-      storageSku: 'Standard_LRS'
-      functionAppSku: 'Y1'
-      functionAppSkuFamily: 'Y'
-      functionAppSkuTier: 'Dynamic'
+      envCode: 'dev'
 
-  # infra-dev:
-  #   name: Create DEV Infra
-  #   needs: infra-demo
+  # infra-qa:
+  #   name: Create QA Infra
+  #   needs: infra-dev
   #   uses: ./.github/workflows/template-create-infra.yml
   #   secrets: inherit
   #   with:
-  #     envCode: 'dev'
-  #     location: 'eastus'
-  #     storageSku: 'Standard_LRS'
-  #     functionAppSku: 'Y1'
-  #     functionAppSkuFamily: 'Y'
-  #     functionAppSkuTier: 'Dynamic'
+  #     envCode: 'qa'
+
+  scan-code:
+    name: Scan Source Code
+    needs: infra-dev
+    uses: ./.github/workflows/template-scan-code.yml
