@@ -38,6 +38,9 @@ param publicNetworkAccess string = 'Enabled'
 @allowed(['Allow','Deny'])
 param allowNetworkAccess string = 'Allow'
 
+param createUserAssignedIdentity bool = true
+param userAssignedIdentityName string = '${keyVaultName}-cicd'
+
 // @description('The workspace to store audit logs.')
 // @metadata({
 //   strongType: 'Microsoft.OperationalInsights/workspaces'
@@ -46,13 +49,16 @@ param allowNetworkAccess string = 'Allow'
 // param workspaceId string = ''
 
 // --------------------------------------------------------------------------------
-var templateTag = { TemplateFile: '~keyVault.bicep' }
+var templateTag = { TemplateFile: '~keyvault.bicep' }
 var tags = union(commonTags, templateTag)
+
+var skuName = 'standard'
+var subTenantId = subscription().tenantId
 
 var ownerAccessPolicy = keyVaultOwnerUserId == '' ? [] : [
   {
     objectId: keyVaultOwnerUserId
-    tenantId: subscription().tenantId
+    tenantId: subTenantId
     permissions: {
       certificates: [ 'all' ]
       secrets: [ 'all' ]
@@ -62,7 +68,7 @@ var ownerAccessPolicy = keyVaultOwnerUserId == '' ? [] : [
 ]
 var adminAccessPolicies = [for adminUser in adminUserObjectIds: {
   objectId: adminUser
-  tenantId: subscription().tenantId
+  tenantId: subTenantId
   permissions: {
     certificates: [ 'all' ]
     secrets: [ 'all' ]
@@ -71,7 +77,7 @@ var adminAccessPolicies = [for adminUser in adminUserObjectIds: {
 }]
 var applicationUserPolicies = [for appUser in applicationUserObjectIds: {
   objectId: appUser
-  tenantId: subscription().tenantId
+  tenantId: subTenantId
   permissions: {
     secrets: [ 'get' ]
     keys: [ 'get', 'wrapKey', 'unwrapKey' ] // Azure SQL uses these permissions to access TDE key
@@ -86,38 +92,60 @@ var kvIpRules = keyVaultOwnerIpAddress == '' ? [] : [
 ] 
 
 // --------------------------------------------------------------------------------
-resource keyvaultResource 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
+resource keyVaultResource 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
   name: keyVaultName
   location: location
   tags: tags
   properties: {
     sku: {
       family: 'A'
-      name: 'standard'
+      name: skuName
     }
-    tenantId: subscription().tenantId
+    tenantId: subTenantId
 
     // Use Access Policies model
-    enableRbacAuthorization: useRBAC      
+    enableRbacAuthorization: useRBAC
     // add function app and web app identities in the access policies so they can read the secrets
     accessPolicies: accessPolicies
 
     enabledForDeployment: enabledForDeployment
     enabledForDiskEncryption: enabledForDiskEncryption
     enabledForTemplateDeployment: enabledForTemplateDeployment
+    enableSoftDelete: enableSoftDelete
 
     enablePurgeProtection: enablePurgeProtection // Not allowing to purge key vault or its objects after deletion
-    enableSoftDelete: enableSoftDelete
-    createMode: 'default'               // Creating or updating the key vault (not recovering)
-
+    createMode: 'default'                        // Creating or updating the key vault (not recovering)
     softDeleteRetentionInDays: softDeleteRetentionInDays
+
     publicNetworkAccess: publicNetworkAccess   // Allow access from all networks
+
     networkAcls: {
-      bypass: 'AzureServices'
       defaultAction: allowNetworkAccess
+      bypass: 'AzureServices'
       ipRules: kvIpRules
       virtualNetworkRules: []
     }
+  }
+}
+
+// this creates a user assigned identity that can be used to verify and update secrets in future steps
+resource userAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (createUserAssignedIdentity) {
+  name: userAssignedIdentityName
+  location: location
+}
+resource userAssignedIdentityKeyVaultAccessPolicy 'Microsoft.KeyVault/vaults/accessPolicies@2022-07-01' = if (createUserAssignedIdentity) {
+  name: 'add'
+  parent: keyVaultResource
+  properties: {
+    accessPolicies: [
+      {
+        permissions: {
+          secrets: ['get','list','set']
+        }
+        tenantId: userAssignedIdentity.properties.tenantId
+        objectId: userAssignedIdentity.properties.principalId
+      }
+    ]
   }
 }
 
@@ -139,5 +167,7 @@ resource keyvaultResource 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
 //   ]
 // }
 
-output name string = keyvaultResource.name
-output id string = keyvaultResource.id
+// --------------------------------------------------------------------------------
+output name string = keyVaultResource.name
+output id string = keyVaultResource.id
+output userManagedIdentityId string = userAssignedIdentity != null ? userAssignedIdentity.id : ''
