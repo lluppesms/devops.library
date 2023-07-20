@@ -9,7 +9,7 @@ param runDateTime string = utcNow()
 
 // --------------------------------------------------------------------------------
 var workspaceName = '${lowerAppPrefix}-${longAppName}-${environment}'
-var templateFileName = 'log-analytics.bicep'
+var templateFileName = 'loganalytics.bicep'
 
 // --------------------------------------------------------------------------------
 resource logWorkspaceResource 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {

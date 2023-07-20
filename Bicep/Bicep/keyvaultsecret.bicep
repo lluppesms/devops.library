@@ -1,29 +1,40 @@
 // --------------------------------------------------------------------------------
 // This BICEP file will create a KeyVault secret
+//   if existingSecretNames list is supplied: 
+//     ONLY create if secretName is not in existingSecretNames list
+//     OR forceSecretCreation is true
 // --------------------------------------------------------------------------------
-param keyVaultName string = 'mykeyvaultname'
-param secretName string = 'mysecretname'
+param keyVaultName string = 'myKeyVault'
+param secretName string = 'mySecretName'
 @secure()
 param secretValue string = ''
 param enabledDate string = utcNow()
-param expirationDate string = dateTimeAdd(utcNow(), 'P10Y')
+param expirationDate string = dateTimeAdd(utcNow(), 'P2Y')
+param existingSecretNames string = ''
+param forceSecretCreation bool = false
 param enabled bool = true
 
 // --------------------------------------------------------------------------------
-resource vault 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+var secretExists = contains(toLower(existingSecretNames), ';${toLower(trim(secretName))};')
+
+// --------------------------------------------------------------------------------
+resource keyVaultResource 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName
 }
 
-// --------------------------------------------------------------------------------
-resource secret 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = {
+resource createSecretValue 'Microsoft.KeyVault/vaults/secrets@2021-04-01-preview' = if (!secretExists || forceSecretCreation) {
   name: secretName
-  parent: vault
+  parent: keyVaultResource
   properties: {
+    value: secretValue
     attributes: {
       enabled: enabled
       exp: dateTimeToEpoch(expirationDate)
       nbf: dateTimeToEpoch(enabledDate)
     }
-    value: secretValue
   }
 }
+
+var createMessage = secretExists ? 'Secret ${secretName} already exists!' : 'Added secret ${secretName}!'
+output message string = secretExists && forceSecretCreation ? 'Secret ${secretName} already exists but was recreated!' : createMessage
+output secretCreated bool = !secretExists

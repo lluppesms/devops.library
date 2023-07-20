@@ -1,27 +1,41 @@
 // --------------------------------------------------------------------------------
 // This BICEP file will create KeyVault secret for an IoT Hub Connection
+//   if existingSecretNames list is supplied: 
+//     ONLY create if secretName is not in existingSecretNames list
+//     OR forceSecretCreation is true
 // --------------------------------------------------------------------------------
-param keyVaultName string = 'mykeyvaultname'
-param keyName string = 'mykeyname'
+param keyVaultName string = 'myKeyVault'
+param secretName string = 'mySecretName'
 param iotHubName string = 'myiothubname'
 param enabledDate string = utcNow()
-param expirationDate string = dateTimeAdd(utcNow(), 'P10Y')
+param expirationDate string = dateTimeAdd(utcNow(), 'P2Y')
+param existingSecretNames string = ''
+param forceSecretCreation bool = false
 
 // --------------------------------------------------------------------------------
+var secretExists = contains(toLower(existingSecretNames), ';${toLower(trim(secretName))};')
+
 resource iotHubResource 'Microsoft.Devices/IotHubs@2021-07-02' existing = { name: iotHubName }
-var iotHubConnectionString = 'HostName=${iotHubResource.name}.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=${listKeys(iotHubResource.id, iotHubResource.apiVersion).value[0].primaryKey}'
+var iotKey = iotHubResource.listKeys().value[0].primaryKey
+var iotHubConnectionString = 'HostName=${iotHubResource.name}.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=${iotKey}'
 
 // --------------------------------------------------------------------------------
-resource keyvaultResource 'Microsoft.KeyVault/vaults@2021-11-01-preview' existing = { 
+resource keyVaultResource 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
   name: keyVaultName
-  resource iotHubSecret 'secrets' = {
-    name: keyName
-    properties: {
-      value: iotHubConnectionString
-      attributes: {
-        exp: dateTimeToEpoch(expirationDate)
-        nbf: dateTimeToEpoch(enabledDate)
-      }
+}
+
+resource createSecretValue 'Microsoft.KeyVault/vaults/secrets@2021-04-01-preview' = if (!secretExists || forceSecretCreation) {
+  name: secretName
+  parent: keyVaultResource
+  properties: {
+    value: iotHubConnectionString
+    attributes: {
+      exp: dateTimeToEpoch(expirationDate)
+      nbf: dateTimeToEpoch(enabledDate)
     }
   }
 }
+
+var createMessage = secretExists ? 'Secret ${secretName} already exists!' : 'Added secret ${secretName}!'
+output message string = secretExists && forceSecretCreation ? 'Secret ${secretName} already exists but was recreated!' : createMessage
+output secretCreated bool = !secretExists

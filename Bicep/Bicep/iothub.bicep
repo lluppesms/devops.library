@@ -25,7 +25,7 @@ resource iotStorageAccountResource 'Microsoft.Storage/storageAccounts@2021-04-01
   name: iotStorageAccountName
   location: location
   sku: {
-      name: 'Standard_GRS'
+    name: 'Standard_LRS'
   }
   tags: tags
   kind: 'StorageV2'
@@ -57,9 +57,13 @@ resource iotStorageAccountResource 'Microsoft.Storage/storageAccounts@2021-04-01
       minimumTlsVersion: 'TLS1_2'
   }
 }
+
+var iotStorageKey = iotStorageAccountResource.listKeys().keys[0].value
+var iotStorageAccountConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${iotStorageAccountResource.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${iotStorageKey}'
+
 // --------------------------------------------------------------------------------
 // create a container inside that storage account
-resource blobServiceResource 'Microsoft.Storage/storageAccounts/blobServices@2019-06-01' = {
+resource iotStorageBlobResource 'Microsoft.Storage/storageAccounts/blobServices@2019-06-01' = {
   parent: iotStorageAccountResource
   name: 'default'
   properties: {
@@ -73,15 +77,14 @@ resource blobServiceResource 'Microsoft.Storage/storageAccounts/blobServices@201
       }
   }
 }
-resource containers 'Microsoft.Storage/storageAccounts/blobServices/containers@2019-06-01' = {
+resource iotStorageContainerResource 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
+  parent: iotStorageBlobResource
   name: iotStorageContainerName
-  parent: blobServiceResource
   properties: {
     publicAccess: 'None'
     metadata: {}
   }
 }
-var iotStorageAccountConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${iotStorageAccountResource.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${listKeys(iotStorageAccountResource.id, iotStorageAccountResource.apiVersion).keys[0].value}'
 
 // --------------------------------------------------------------------------------
 // create an IoT Hub and link it to the Storage Container

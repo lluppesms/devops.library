@@ -6,7 +6,7 @@ param location string = resourceGroup().location
 param commonTags object = {}
 
 // --------------------------------------------------------------------------------
-var templateTag = { TemplateFile: '~log-analytics.bicep' }
+var templateTag = { TemplateFile: '~loganalytics.bicep' }
 var tags = union(commonTags, templateTag)
 
 // --------------------------------------------------------------------------------
