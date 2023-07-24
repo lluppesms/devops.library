@@ -13,13 +13,17 @@ param commonTags object = {}
 @allowed(['F1','S1','S2','S3'])
 param sku string = 'S1'
 
+@description('The workspace to store audit logs.')
+param workspaceId string = ''
+
 // --------------------------------------------------------------------------------
 var templateTag = { TemplateFile: '~dps.bicep' }
 var tags = union(commonTags, templateTag)
 
 // --------------------------------------------------------------------------------
 resource iotHubResource 'Microsoft.Devices/IotHubs@2021-07-02' existing = { name: iotHubName }
-var iotHubConnectionString = 'HostName=${iotHubResource.name}.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=${listKeys(iotHubResource.id, iotHubResource.apiVersion).value[0].primaryKey}'
+var iotKey = iotHubResource.listKeys().value[0].primaryKey
+var iotHubConnectionString = 'HostName=${iotHubResource.name}.azure-devices.net;SharedAccessKeyName=iothubowner;SharedAccessKey=${iotKey}'
 
 // --------------------------------------------------------------------------------
 // create a Device Provisioning Service and link it to the IoT Hub
@@ -105,6 +109,51 @@ resource dpsResource 'Microsoft.Devices/provisioningServices@2022-02-05' = {
 //     retentionInterval: 'P1D'
 //   }
 // }
+
+// --------------------------------------------------------------------------------
+resource dpsAuditLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${dpsResource.name}-auditlogs'
+  scope: dpsResource
+  properties: {
+    workspaceId: workspaceId
+    logs: [
+      {
+        category: 'DeviceOperations'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+      {
+        category: 'ServiceOperations'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
+
+resource dpsMetricLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${dpsResource.name}-metrics'
+  scope: dpsResource
+  properties: {
+    workspaceId: workspaceId
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
 
 // --------------------------------------------------------------------------------
 output id string = dpsResource.id

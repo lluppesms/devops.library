@@ -5,10 +5,13 @@ param saJobName string = 'mystreamingjobname'
 param location string = resourceGroup().location
 param commonTags object = {}
 
-param sku string = 'Standard'
+param sku string = 'StandardV2'
 param iotHubName string = ''
 param svcBusName string = ''
 param svcBusQueueName string = ''
+
+@description('The workspace to store audit logs.')
+param workspaceId string = ''
 
 // --------------------------------------------------------------------------------
 var templateTag = { TemplateFile: '~streaming.bicep' }
@@ -16,14 +19,14 @@ var tags = union(commonTags, templateTag)
 
 // --------------------------------------------------------------------------------
 resource iotHubResource 'Microsoft.Devices/IotHubs@2021-07-02' existing = { name: iotHubName }
-var iotHubAccessKey = '${listKeys(iotHubResource.id, '2021-07-02').value[0].primaryKey}'
+var iotHubAccessKey = iotHubResource.listKeys().value[0].primaryKey
 
 resource svcBusResource 'Microsoft.ServiceBus/namespaces@2021-11-01' existing = { name: svcBusName }
 var svcBusAccessKeyEndpoint = '${svcBusResource.id}/AuthorizationRules/RootManageSharedAccessKey'
 var svcBusAccessKey = '${listKeys(svcBusAccessKeyEndpoint, svcBusResource.apiVersion).primaryKey}'
 
 // --------------------------------------------------------------------------------
-resource saJobResource 'Microsoft.StreamAnalytics/streamingjobs@2021-10-01-preview' = {
+resource streamingResource 'Microsoft.StreamAnalytics/streamingjobs@2021-10-01-preview' = {
   name: saJobName
   location: location
   tags: tags
@@ -102,11 +105,58 @@ resource saJobResource 'Microsoft.StreamAnalytics/streamingjobs@2021-10-01-previ
       name: 'basequery'
       properties: {
         query: 'SELECT * INTO [svcbus] FROM [iothub]'
-        streamingUnits: 1
+        streamingUnits: 3
       }
     }  
   }
 }
 
-output name string = saJobResource.name
-output id string = saJobResource.id
+// --------------------------------------------------------------------------------
+resource streamingAuditLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${streamingResource.name}-auditlogs'
+  scope: streamingResource
+  properties: {
+    workspaceId: workspaceId
+    logs: [
+      // { category: 'AllLogs' //  tried several, but can't find the right keyword for this to work...?
+      {
+        category: 'Execution'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+      {
+        category: 'Authoring'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
+
+resource streamingMetricLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${streamingResource.name}-metrics'
+  scope: streamingResource
+  properties: {
+    workspaceId: workspaceId
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
+
+// --------------------------------------------------------------------------------
+output name string = streamingResource.name
+output id string = streamingResource.id

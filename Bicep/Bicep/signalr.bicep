@@ -9,6 +9,9 @@ param sku string = 'Free_F1'	 // Required, the name of the SKU. Allowed values: 
 param skuTier	string = 'Free'  // Optional tier of this particular SKU. 'Standard' or 'Free' or 'Premium'
 //param skuCapacity int = 1    // Optional, integer. The unit count of the resource. 1 by default. Allowed: Free: 1; Standard: 1,2,5,10,20,50,100
 
+@description('The workspace to store audit logs.')
+param workspaceId string = ''
+
 // --------------------------------------------------------------------------------
 var templateTag = { TemplateFile: '~signalr.bicep' }
 var tags = union(commonTags, templateTag)
@@ -64,6 +67,43 @@ resource signalRResource 'Microsoft.SignalRService/SignalR@2022-02-01' = {
     publicNetworkAccess: 'Enabled'
     disableLocalAuth: false
     disableAadAuth: false
+  }
+}
+
+// --------------------------------------------------------------------------------
+resource signalRAuditLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${signalRResource.name}-auditlogs'
+  scope: signalRResource
+  properties: {
+    workspaceId: workspaceId
+    logs: [
+      {
+        category: 'allLogs'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
+
+resource signalRMetricLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${signalRResource.name}-metrics'
+  scope: signalRResource
+  properties: {
+    workspaceId: workspaceId
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
   }
 }
 

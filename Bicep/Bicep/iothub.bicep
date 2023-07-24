@@ -15,6 +15,9 @@ param sku string = 'S1'
 @allowed(['Allow','Deny'])
 param allowStorageNetworkAccess string = 'Allow'
 
+@description('The workspace to store audit logs.')
+param workspaceId string = ''
+
 // --------------------------------------------------------------------------------
 var templateTag = { TemplateFile: '~iothub.bicep' }
 var tags = union(commonTags, templateTag)
@@ -167,6 +170,51 @@ resource iotHubResource 'Microsoft.Devices/IotHubs@2021-07-02' = {
     disableLocalAuth: false
     allowedFqdnList: []
     enableDataResidency: false
+  }
+}
+
+// --------------------------------------------------------------------------------
+resource iotHubAuditLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${iotHubResource.name}-auditlogs'
+  scope: iotHubResource
+  properties: {
+    workspaceId: workspaceId
+    logs: [
+      {
+        category: 'C2DCommands'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+      {
+        category: 'DirectMethods'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
+
+resource iotHubMetricLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${iotHubResource.name}-metrics'
+  scope: iotHubResource
+  properties: {
+    workspaceId: workspaceId
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
   }
 }
 

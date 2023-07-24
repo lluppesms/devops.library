@@ -7,12 +7,15 @@ param commonTags object = {}
 
 param queueNames array = ['queue1Name', 'queue2Name']
 
+@description('The workspace to store audit logs.')
+param workspaceId string = ''
+
 // --------------------------------------------------------------------------------
 var templateTag = { TemplateFile: '~serviceBus.bicep' }
 var tags = union(commonTags, templateTag)
 
 // --------------------------------------------------------------------------------
-resource svcBusResource 'Microsoft.ServiceBus/namespaces@2022-01-01-preview' = {
+resource serviceBusResource 'Microsoft.ServiceBus/namespaces@2022-01-01-preview' = {
   name: serviceBusName
   location: location
   tags: tags
@@ -28,8 +31,8 @@ resource svcBusResource 'Microsoft.ServiceBus/namespaces@2022-01-01-preview' = {
   }
 }
 
-resource svcBusRootManageSharedAccessKeyResource 'Microsoft.ServiceBus/namespaces/AuthorizationRules@2022-01-01-preview' = {
-  parent: svcBusResource
+resource serviceBusAccessKeyResource 'Microsoft.ServiceBus/namespaces/AuthorizationRules@2022-01-01-preview' = {
+  parent: serviceBusResource
   name: 'RootManageSharedAccessKey'
   properties: {
     rights: [
@@ -40,8 +43,8 @@ resource svcBusRootManageSharedAccessKeyResource 'Microsoft.ServiceBus/namespace
   }
 }
 
-resource svcBusQueueResource 'Microsoft.ServiceBus/namespaces/queues@2022-01-01-preview' = [for queueName in queueNames: {
-  parent: svcBusResource
+resource serviceBusQueueResource 'Microsoft.ServiceBus/namespaces/queues@2022-01-01-preview' = [for queueName in queueNames: {
+  parent: serviceBusResource
   name: queueName
   properties: {
     maxMessageSizeInKilobytes: 256
@@ -61,8 +64,53 @@ resource svcBusQueueResource 'Microsoft.ServiceBus/namespaces/queues@2022-01-01-
 }]
 
 // --------------------------------------------------------------------------------
-var serviceBusEndpoint = '${svcBusResource.id}/AuthorizationRules/RootManageSharedAccessKey' 
-output name string = svcBusResource.name
-output id string = svcBusResource.id
-output apiVersion string = svcBusResource.apiVersion
+resource serviceBusAuditLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${serviceBusResource.name}-auditlogs'
+  scope: serviceBusResource
+  properties: {
+    workspaceId: workspaceId
+    logs: [
+      {
+        category: 'OperationalLogs'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+      {
+        category: 'RuntimeAuditLogs'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
+
+resource serviceBusMetricLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${serviceBusResource.name}-metrics'
+  scope: serviceBusResource
+  properties: {
+    workspaceId: workspaceId
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
+
+// --------------------------------------------------------------------------------
+var serviceBusEndpoint = '${serviceBusResource.id}/AuthorizationRules/RootManageSharedAccessKey' 
+output name string = serviceBusResource.name
+output id string = serviceBusResource.id
+output apiVersion string = serviceBusResource.apiVersion
 output endpoint string = serviceBusEndpoint

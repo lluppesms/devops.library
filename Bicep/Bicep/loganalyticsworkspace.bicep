@@ -18,6 +18,13 @@ resource logWorkspaceResource 'Microsoft.OperationalInsights/workspaces@2021-06-
     sku: {
         name: 'PerGB2018' // Standard
     }
+    retentionInDays: 90
+    //you can limit the maximum daily ingestion on the Workspace by providing a value for dailyQuotaGb. 
+    // Note: Bicep expects an integer, however in order to set the minimum possible value of 0.023 GB
+    // you need to pass it as a string which will work just fine.
+    workspaceCapping: {
+      dailyQuotaGb: '0.023'
+    }
   }
 }
 

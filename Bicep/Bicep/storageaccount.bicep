@@ -2,11 +2,6 @@
 // This BICEP file will create storage account
 // FYI: To purge a storage account with soft delete enabled: > az storage account purge --name storeName
 // --------------------------------------------------------------------------------
-// To deploy this Bicep manually:
-// 	 az login   (do this if not already logged in)
-//   az account set --subscription 1bd3dfe5-ddd8-443c-8d35-31cf3d729c8f
-//   az deployment group create -n lll-storage -g RG-BICEP-WORKSHOP-01 -f 'storageaccount.bicep' -p storageAccountName=lllstoragedemo
-// --------------------------------------------------------------------------------
 param storageAccountName string = 'mystorageaccountname'
 param location string = resourceGroup().location
 param commonTags object = {}
@@ -17,7 +12,6 @@ param storageAccessTier string = 'Hot'
 param containerNames array = ['input','output']
 @allowed(['Allow','Deny'])
 param allowNetworkAccess string = 'Allow'
-@description('The IP Addresses that are allowed access to this storage account.')
 
 // --------------------------------------------------------------------------------
 var templateTag = { TemplateFile: '~storageAccount.bicep' }
@@ -37,7 +31,6 @@ resource storageAccountResource 'Microsoft.Storage/storageAccounts@2019-06-01' =
             bypass: 'AzureServices'
             defaultAction: allowNetworkAccess
             ipRules: []
-            // ipRules: (empty(ipRules) ? json('[]') : ipRules)
             virtualNetworkRules: []
             //virtualNetworkRules: ((virtualNetworkType == 'External') ? json('[{"id": "${subscription().id}/resourceGroups/${vnetResource}/providers/Microsoft.Network/virtualNetworks/${vnetResource.name}/subnets/${subnetName}"}]') : json('[]'))
         }
@@ -62,7 +55,8 @@ resource storageAccountResource 'Microsoft.Storage/storageAccounts@2019-06-01' =
 }
 
 resource blobServiceResource 'Microsoft.Storage/storageAccounts/blobServices@2019-06-01' = {
-    name: '${storageAccountResource.name}/default'
+    parent: storageAccountResource
+    name: 'default'
     properties: {
         cors: {
             corsRules: [

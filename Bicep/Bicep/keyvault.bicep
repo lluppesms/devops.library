@@ -41,12 +41,12 @@ param allowNetworkAccess string = 'Allow'
 param createUserAssignedIdentity bool = true
 param userAssignedIdentityName string = '${keyVaultName}-cicd'
 
-// @description('The workspace to store audit logs.')
-// @metadata({
-//   strongType: 'Microsoft.OperationalInsights/workspaces'
-//   example: '/subscriptions/<subscription_id>/resourceGroups/<resource_group>/providers/Microsoft.OperationalInsights/workspaces/<workspace_name>'
-// })
-// param workspaceId string = ''
+@description('The workspace to store audit logs.')
+@metadata({
+  strongType: 'Microsoft.OperationalInsights/workspaces'
+  example: '/subscriptions/<subscription_id>/resourceGroups/<resource_group>/providers/Microsoft.OperationalInsights/workspaces/<workspace_name>'
+})
+param workspaceId string = ''
 
 // --------------------------------------------------------------------------------
 var templateTag = { TemplateFile: '~keyvault.bicep' }
@@ -149,23 +149,41 @@ resource userAssignedIdentityKeyVaultAccessPolicy 'Microsoft.KeyVault/vaults/acc
   }
 }
 
-// // Configure logging
-// resource vaultName_Microsoft_Insights_service 'Microsoft.KeyVault/vaults/providers/diagnosticSettings@2016-09-01' = if (!empty(workspaceId)) {
-//   name: '${name}/Microsoft.Insights/service'
-//   location: location
-//   properties: {
-//     workspaceId: workspaceId
-//     logs: [
-//       {
-//         category: 'AuditEvent'
-//         enabled: true
-//       }
-//     ]
-//   }
-//   dependsOn: [
-//     vault
-//   ]
-// }
+resource keyVaultAuditLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (workspaceId != '') {
+  name: '${keyVaultResource.name}-auditlogs'
+  scope: keyVaultResource
+  properties: {
+    workspaceId: workspaceId
+    logs: [
+      {
+        category: 'AuditEvent'
+        enabled: true
+        retentionPolicy: {
+          days: 180
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
+
+resource keyVaultMetricLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (workspaceId != '') {
+  name: '${keyVaultResource.name}-metrics'
+  scope: keyVaultResource
+  properties: {
+    workspaceId: workspaceId
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
 
 // --------------------------------------------------------------------------------
 output name string = keyVaultResource.name

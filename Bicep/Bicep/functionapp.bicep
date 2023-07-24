@@ -16,13 +16,17 @@ param functionAppSkuFamily string = 'Y'
 param functionAppSkuTier string = 'Dynamic'
 param functionStorageAccountName string = ''
 
+@description('The workspace to store audit logs.')
+param workspaceId string = ''
+
 // --------------------------------------------------------------------------------
 var templateTag = { TemplateFile: '~functionapp.bicep' }
 var tags = union(commonTags, templateTag)
 
 // --------------------------------------------------------------------------------
 resource storageAccountResource 'Microsoft.Storage/storageAccounts@2019-06-01' existing = { name: functionStorageAccountName }
-var functionStorageAccountConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storageAccountResource.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${listKeys(storageAccountResource.id, storageAccountResource.apiVersion).keys[0].value}'
+var accountKey = storageAccountResource.listKeys().keys[0].value
+var functionStorageAccountConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storageAccountResource.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${accountKey}'
 
 resource appInsightsResource 'Microsoft.Insights/components@2020-02-02-preview' = {
   name: functionInsightsName
@@ -35,6 +39,7 @@ resource appInsightsResource 'Microsoft.Insights/components@2020-02-02-preview' 
     //RetentionInDays: 90
     publicNetworkAccessForIngestion: 'Enabled'
     publicNetworkAccessForQuery: 'Enabled'
+    WorkspaceResourceId: workspaceId
   }
 }
 
@@ -213,6 +218,60 @@ resource functionAppResource 'Microsoft.Web/sites@2021-03-01' = {
 //         hostNameType: 'Verified'
 //     }
 // }
+
+resource functionAppMetricLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${functionAppResource.name}-metrics'
+  scope: functionAppResource
+  properties: {
+    workspaceId: workspaceId
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
+
+// https://learn.microsoft.com/en-us/azure/app-service/troubleshoot-diagnostic-logs
+resource functionAppAuditLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${functionAppResource.name}-logs'
+  scope: functionAppResource
+  properties: {
+    workspaceId: workspaceId
+    logs: [
+      {
+        category: 'FunctionAppLogs'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
+resource appServiceMetricLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  name: '${appServiceResource.name}-metrics'
+  scope: appServiceResource
+  properties: {
+    workspaceId: workspaceId
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+        retentionPolicy: {
+          days: 30
+          enabled: true 
+        }
+      }
+    ]
+  }
+}
 
 output principalId string = functionAppResource.identity.principalId
 output id string = functionAppResource.id
