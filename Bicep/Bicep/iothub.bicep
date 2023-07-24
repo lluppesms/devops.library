@@ -91,7 +91,7 @@ resource iotStorageContainerResource 'Microsoft.Storage/storageAccounts/blobServ
 
 // --------------------------------------------------------------------------------
 // create an IoT Hub and link it to the Storage Container
-resource iotHubResource 'Microsoft.Devices/IotHubs@2021-07-02' = {
+resource iotHubResource 'Microsoft.Devices/IotHubs@2022-04-30-preview' = {
   name: iotHubName
   location: location
   tags: tags
@@ -165,7 +165,13 @@ resource iotHubResource 'Microsoft.Devices/IotHubs@2021-07-02' = {
         maxDeliveryCount: 10
       }
     }
-    features: 'None'
+    // Old IoT Hub defaults to Baltimore CyberTrust Root which will expire in 2025 
+    // You must migrate to the DigiCert Global G2 root and these next two lines will do that.
+    // To avoid service disruption it must be migrated by September 15th 2023.
+    features: 'RootCertificateV2'
+    rootCertificate: {
+      enableRootCertificateV2: true
+    }
     minTlsVersion: '1.2'
     disableLocalAuth: false
     allowedFqdnList: []
