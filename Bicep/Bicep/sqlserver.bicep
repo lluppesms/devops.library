@@ -5,13 +5,20 @@
 // --------------------------------------------------------------------------------
 param sqlServerName string = uniqueString('sql', resourceGroup().id)
 param sqlDBName string = 'SampleDB'
-@allowed(['Basic','Standard','Premium','BusinessCritical'])
-param sqlDbTier string = 'Basic'
-param adAdminUserId string = 'somebody@somedomain.com'
-param adAdminUserSid string = '12345678-1234-1234-1234-123456789012'
-param adAdminTenantId string = '12345678-1234-1234-1234-123456789012'
+param adAdminUserId string = '' // 'somebody@somedomain.com'
+param adAdminUserSid string = '' // '12345678-1234-1234-1234-123456789012'
+param adAdminTenantId string = '' // '12345678-1234-1234-1234-123456789012'
 param location string = resourceGroup().location
 param commonTags object = {}
+
+// basic serverless config: Tier='GeneralPurpose', Family='Gen5', Name='GP_S_Gen5'
+@allowed(['Basic','Standard','Premium','BusinessCritical','GeneralPurpose'])
+param sqlSkuTier string = 'GeneralPurpose'
+param sqlSkuFamily string = 'Gen5'
+param sqlSkuName string = 'GP_S_Gen5'
+param mincores int = 2 // number of cores (from 0.5 to 40)
+param autopause int = 60 // time in minutes
+
 // param sqldbAdminUserId string
 // @secure()
 // param sqldbAdminPassword string
@@ -54,12 +61,26 @@ resource sqlDBResource 'Microsoft.Sql/servers/databases@2022-05-01-preview' = {
   parent: sqlServerResource
   name: sqlDBName
   location: location
+  tags: tags
   sku: {
-    name: sqlDbTier
-    tier: sqlDbTier
+    name: sqlSkuName
+    tier: sqlSkuTier
+    family: sqlSkuFamily
+    capacity: 2
+  }
+  //kind: 'v12.0,user,vcore,serverless'
+  properties: {
+    collation: 'SQL_Latin1_General_CP1_CI_AS'
+    maxSizeBytes: 4294967296  // 34359738368 = 32G; 4294967296 = 4G
+    catalogCollation: 'SQL_Latin1_General_CP1_CI_AS'
+    zoneRedundant: false
+    readScale: 'Disabled'
+    autoPauseDelay: autopause
+    requestedBackupStorageRedundancy: 'Geo'
+    minCapacity: mincores
+    isLedgerOn: false
   }
 }
-
 
 // --------------------------------------------------------------------------------
 output serverName string = sqlServerResource.name

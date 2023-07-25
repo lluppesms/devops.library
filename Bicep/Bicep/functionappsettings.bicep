@@ -9,7 +9,8 @@ param customAppSettings object = {}
 resource storageAccountResource 'Microsoft.Storage/storageAccounts@2019-06-01' existing = { 
   name: functionStorageAccountName 
 }
-var storageAccountConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storageAccountResource.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${listKeys(storageAccountResource.id, storageAccountResource.apiVersion).keys[0].value}'
+var accountKey = storageAccountResource.listKeys().keys[0].value
+var storageAccountConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storageAccountResource.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${accountKey}'
 
 var BASE_SLOT_APPSETTINGS = {
   AzureWebJobsDashboard: storageAccountConnectionString
