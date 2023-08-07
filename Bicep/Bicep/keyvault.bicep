@@ -159,7 +159,7 @@ resource keyVaultAuditLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-
         category: 'AuditEvent'
         enabled: true
         retentionPolicy: {
-          days: 180
+          days: 30
           enabled: true 
         }
       }

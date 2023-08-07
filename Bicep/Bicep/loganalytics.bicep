@@ -1,33 +1,36 @@
 // --------------------------------------------------------------------------------
 // Creates a Log Analytics Workspace
 // --------------------------------------------------------------------------------
-param lowerAppPrefix string = ''
-param longAppName string = ''
-param environment string = ''
+param name string = 'myLogAnalyticsWorkspaceName'
 param location string = resourceGroup().location
-param runDateTime string = utcNow()
+param commonTags object = {}
 
 // --------------------------------------------------------------------------------
-var workspaceName = '${lowerAppPrefix}-${longAppName}-${environment}'
-var templateFileName = 'loganalytics.bicep'
+var templateTag = { TemplateFile: '~logAnalytics.bicep' }
+var tags = union(commonTags, templateTag)
 
 // --------------------------------------------------------------------------------
 resource logWorkspaceResource 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {
-  name: workspaceName
+  name: name
   location: location
-  tags: {
-    LastDeployed: runDateTime
-    TemplateFile: templateFileName
-    AppPrefix: lowerAppPrefix
-    AppName: longAppName
-    Environment: environment
-  }
+  tags: tags
   properties: {
     sku: {
-        name: 'PerGB2018' // Standard
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+    features: {
+      searchVersion: 1
+    }
+    //you can limit the maximum daily ingestion on the Workspace by providing a value for dailyQuotaGb. 
+    // Note: Bicep expects an integer, however in order to set the minimum possible value of 0.023 GB
+    // you need to pass it as a string which will work just fine.
+    workspaceCapping: {
+      dailyQuotaGb: '0.023'
     }
   }
 }
 
 // --------------------------------------------------------------------------------
+output name string = logWorkspaceResource.name
 output id string = logWorkspaceResource.id

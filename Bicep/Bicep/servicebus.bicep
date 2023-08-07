@@ -3,9 +3,9 @@
 // --------------------------------------------------------------------------------
 param serviceBusName string = 'myservicebusname'
 param location string = resourceGroup().location
-param commonTags object = {}
-
+param topicNames array = [ 'topic1Name' ]
 param queueNames array = ['queue1Name', 'queue2Name']
+param commonTags object = {}
 
 @description('The workspace to store audit logs.')
 param workspaceId string = ''
@@ -42,6 +42,11 @@ resource serviceBusAccessKeyResource 'Microsoft.ServiceBus/namespaces/Authorizat
     ]
   }
 }
+
+resource serviceBusTopic 'Microsoft.ServiceBus/namespaces/topics@2017-04-01' = [for topicName in topicNames: {
+  name: topicName
+  parent: serviceBusResource
+}]
 
 resource serviceBusQueueResource 'Microsoft.ServiceBus/namespaces/queues@2022-01-01-preview' = [for queueName in queueNames: {
   parent: serviceBusResource
