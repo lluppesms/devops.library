@@ -1,0 +1,43 @@
+# ----------------------------------------------------------------------------------------------------
+# Pipe to build and deploy an Azure Container App for multiple environments
+# ----------------------------------------------------------------------------------------------------
+parameters:
+- name: environments
+  type: object
+  default: ['DEMO']
+- name: variableGroupName
+  default: 'myVariableGroupName'
+  type: string
+- name: serviceName
+  default: 'myService'
+  type: string
+- name: projectFolderName
+  default: 'myService'
+  type: string
+- name: containerPort
+  default: 6000
+  type: number
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+  - stage: Build${{ parameters.projectFolderName }}Service
+    displayName: Build ${{ parameters.projectFolderName }} Service
+    dependsOn: []
+    jobs:
+    - template: templates/aca-app-build-template.yml
+      parameters:
+        variableGroupName: ${{ parameters.variableGroupName }}
+        serviceName: ${{ parameters.serviceName }}
+        projectFolderName: ${{ parameters.projectFolderName }}
+
+  - ${{ each environmentName in parameters.environments }} :
+    - stage: Deploy${{ parameters.serviceName }}${{ environmentName }}Service
+      displayName: Deploy ${{ parameters.serviceName }} ${{ environmentName }} Service
+      dependsOn: Build${{ parameters.projectFolderName }}Service
+      jobs:
+      - template: templates/aca-app-deploy-template.yml
+        parameters:
+          variableGroupName: ${{ parameters.variableGroupName }}
+          serviceName: ${{ parameters.serviceName }}
+          containerPort: ${{ parameters.containerPort }}
+          environmentName: ${{ environmentName }}

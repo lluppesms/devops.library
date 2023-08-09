@@ -5,30 +5,27 @@ parameters:
 - name: environments
   type: object
   default: ['DEMO']
+- name: serviceNameArray
+  type: object
+  default: []
 - name: variableGroupName
   default: 'myVariableGroupName'
 - name: bicepFolderName
   default: 'infra/Bicep'
 - name: bicepFileName
-  default: 'main.bicep'
+  default: 'main-acaKeyVault.bicep'
 
 # ----------------------------------------------------------------------------------------------------
 stages:
-#- stage: ScanApplication
-#  displayName: Scan Application
-#  jobs:
-#  - template: templates/secure-devops-template.yml
-#    parameters:
-#      variableGroupName: ${{ parameters.variableGroupName }}
-#      environmentName: 'DEV'
-
 - ${{ each environmentName in parameters.environments }} :
-  - stage: CreateInfra${{ environmentName }}
-    displayName: Create ${{ environmentName }} Resources
-    jobs:
-    - template: templates/create-infra-template.yml
-      parameters:
-        variableGroupName: ${{ parameters.variableGroupName }}
-        environmentName: ${{ environmentName }}
-        bicepFolderName: ${{ parameters.bicepFolderName }}
-        bicepFileName: ${{ parameters.bicepFileName }}
+  - ${{ each serviceName in parameters.serviceNameArray }} :
+    - stage: Add${{ environmentName }}KV${{ serviceName }}
+      displayName: Add ${{ environmentName }} KV ${{ serviceName }}
+      jobs:
+      - template: templates/rights-infra-template.yml
+        parameters:
+          variableGroupName: ${{ parameters.variableGroupName }}
+          environmentName: ${{ environmentName }}
+          serviceName: ${{ serviceName }}
+          bicepFolderName: ${{ parameters.bicepFolderName }}
+          bicepFileName: ${{ parameters.bicepFileName }}

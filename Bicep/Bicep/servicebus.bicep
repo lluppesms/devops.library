@@ -19,6 +19,9 @@ resource serviceBusResource 'Microsoft.ServiceBus/namespaces@2022-01-01-preview'
   name: serviceBusName
   location: location
   tags: tags
+  identity: {
+    type: 'SystemAssigned'
+  }
   sku: {
     name: 'Basic'
     tier: 'Basic'
@@ -118,4 +121,5 @@ var serviceBusEndpoint = '${serviceBusResource.id}/AuthorizationRules/RootManage
 output name string = serviceBusResource.name
 output id string = serviceBusResource.id
 output apiVersion string = serviceBusResource.apiVersion
-output endpoint string = serviceBusEndpoint
+output serviceBusEndpoint string = serviceBusEndpoint
+output endpoint string = serviceBusResource.properties.serviceBusEndpoint

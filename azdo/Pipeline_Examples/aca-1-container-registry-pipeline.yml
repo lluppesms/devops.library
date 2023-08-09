@@ -1,0 +1,18 @@
+# ----------------------------------------------------------------------------------------------------
+# Pipeline to deploy Azure Container Registry before app build/deploy
+# ----------------------------------------------------------------------------------------------------
+# This needs the variable group "TrafficControlDemo" - see readme.md for details.
+# ----------------------------------------------------------------------------------------------------
+name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
+pool:
+  vmImage: 'ubuntu-latest'
+# ----------------------------------------------------------------------------------------------------
+trigger: none
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- template: pipes/infra-only-pipe.yml
+  parameters:
+    variableGroupName: 'TrafficControlDemo'
+    bicepFolderName: 'infra/Bicep'
+    bicepFileName: 'main-containerregistry.bicep'

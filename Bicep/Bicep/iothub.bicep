@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------------
-// This BICEP file will create a linked IoT Hub and DPS Service
+// This BICEP file will create an IoT Hub
 // --------------------------------------------------------------------------------
 // NOTE: there is no way yet to automate DPS Enrollment Group creation.
 //   After DPS is created, you will need to manually create a group based on

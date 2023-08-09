@@ -1,0 +1,82 @@
+# ----------------------------------------------------------------------------------------------------
+# Template to build a Azure Container App Docker image and put it to a container registry
+# ----------------------------------------------------------------------------------------------------
+# This relies on having a service connection linked to a Container Registry.  
+# The guid for that service connection must be stored in the dockerRegistryConnectionResourceId variable.
+# ----------------------------------------------------------------------------------------------------
+parameters:
+- name: variableGroupName
+  default: 'myVariableGroupName'
+  type: string
+- name: serviceName
+  default: 'myServiceName'
+  type: string
+- name: projectFolderName
+  default: 'myServiceName'
+  type: string
+
+# ----------------------------------------------------------------------------------------------------
+jobs:
+- deployment: Build${{ parameters.serviceName }}App
+  displayName: Init Build ${{ parameters.serviceName }} App
+  environment: 'DEMO'
+
+- job: Build${{ parameters.serviceName }}Job
+  displayName: Build ${{ parameters.serviceName }} Job
+  variables:
+    - group: ${{ parameters.variableGroupName }}
+    - name: serviceName
+      value: ${{ parameters.serviceName }}
+    - name: projectFolderName
+      value: ${{ parameters.projectFolderName }}
+    - name: rootDirectory
+      value: 'src/$(projectFolderName)'
+    - name: dockerFilePath
+      value: '$(Build.SourcesDirectory)/$(rootDirectory)/Dockerfile'
+    - name: dockerImageTag
+      value: '$(Build.BuildNumber)'
+
+  steps:
+  - bash: |
+      echo "serviceName=$(serviceName)"
+      echo "projectFolderName=$(projectFolderName)"
+      echo "rootDirectory=$(rootDirectory)"
+      echo "dockerFilePath=$(dockerFilePath)"
+      echo "dockerImageTag=$(dockerImageTag)"
+      echo "acrFolderName=$(acrFolderName)"
+
+      serviceNameLower=$(echo "$(serviceName)" | tr '[:upper:]' '[:lower:]')
+      echo "serviceNameLower=$serviceNameLower"
+      echo "##vso[task.setvariable variable=serviceNameLower]$serviceNameLower"
+
+      acrFolderNameLower=$(echo "$(acrFolderName)" | tr '[:upper:]' '[:lower:]')
+      echo "acrFolderNameLower=$acrFolderNameLower"
+      echo "##vso[task.setvariable variable=acrFolderNameLower]$acrFolderNameLower"
+
+      dockerImageRepository=$(echo "$acrFolderNameLower/$serviceNameLower")
+      echo "dockerImageRepository=$dockerImageRepository"
+      echo "##vso[task.setvariable variable=dockerImageRepository]$dockerImageRepository"
+    displayName: 'Create Variables'
+    continueOnError: true
+
+  - task: Docker@2
+    displayName: 'Container Build and Push'
+    inputs:
+      #containerRegistry: '$(dockerRegistryServiceConnection)'
+      containerRegistry: '$(dockerRegistryConnectionName)'
+      repository: '$(dockerImageRepository)'
+      command: 'buildAndPush'
+      Dockerfile: '$(dockerFilePath)'
+      buildContext: '$(Build.SourcesDirectory)/$(rootDirectory)/'
+      tags: |
+        $(dockerImageTag)
+        latest
+
+  # # ----------------------------------------------------------------------------------------------------------
+  # # This only publishes the Deploy folder (YML and Bicep files) to artifacts... not sure why it's needed...
+  # # ----------------------------------------------------------------------------------------------------------
+  # - task: PublishPipelineArtifact@1
+  #   inputs:
+  #     targetPath: '$(Build.SourcesDirectory)/$(rootDirectory)/deploy/'
+  #     artifact: 'Deploy-$(serviceName)'
+  #     publishLocation: 'pipeline'

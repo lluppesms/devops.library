@@ -1,0 +1,63 @@
+# ----------------------------------------------------------------------------------------------------
+# Pipeline to deploy all Azure Container App Service Modules for an application
+# ----------------------------------------------------------------------------------------------------
+# This needs the variable group "TrafficControlDemo" - see readme.md for details.
+# ----------------------------------------------------------------------------------------------------
+name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
+pool:
+  vmImage: 'ubuntu-latest'
+# ----------------------------------------------------------------------------------------------------
+trigger: none
+
+# ----------------------------------------------------------------------------------------------------
+parameters:
+  - name: deployTrafficControl
+    displayName: Deploy Traffic Control Service
+    type: boolean
+    default: false
+  - name: deployFineControl
+    displayName: Deploy Fine Control Service
+    type: boolean
+    default: false
+  - name: deployVehicleRegistration
+    displayName: Deploy Vehicle Registration Service
+    type: boolean
+    default: false
+  # - name: deploySimulation
+  #   displayName: Deploy Simulation Service
+  #   type: boolean
+  #   default: false
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- ${{ if eq(lower(parameters.deployFineControl), 'true') }}:
+  - template: pipes/aca-app-build-deploy-pipe.yml
+    parameters:
+      variableGroupName: 'TrafficControlDemo'
+      serviceName: 'FineCollectionService'
+      projectFolderName: 'FineCollectionService'
+      containerPort: 6001
+
+- ${{ if eq(lower(parameters.deployVehicleRegistration), 'true') }}:
+  - template: pipes/aca-app-build-deploy-pipe.yml
+    parameters:
+      variableGroupName: 'TrafficControlDemo'
+      serviceName: 'VehicleRegistrationService'
+      projectFolderName: 'VehicleRegistrationService'
+      containerPort: 6002
+
+- ${{ if eq(lower(parameters.deployTrafficControl), 'true') }}:
+  - template: pipes/aca-app-build-deploy-pipe.yml
+    parameters:
+      variableGroupName: 'TrafficControlDemo'
+      serviceName: 'TrafficControlService'
+      projectFolderName: 'TrafficControlService'
+
+      containerPort: 6000
+# - ${{ if eq(lower(parameters.deploySimulation), 'true') }}:
+#   - template: pipes/aca-app-build-deploy-pipe.yml
+#     parameters:
+#       variableGroupName: 'TrafficControlDemo'
+#       serviceName: 'SimulationService'
+#       projectFolderName: 'Simulation'
+#       containerPort: 6003

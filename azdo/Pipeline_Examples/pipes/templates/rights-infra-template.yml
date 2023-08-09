@@ -1,0 +1,67 @@
+# ----------------------------------------------------------------------------------------------------
+# Template to deploy Azure Resources for one environment
+# ----------------------------------------------------------------------------------------------------
+parameters:
+- name: variableGroupName
+  default: 'myVariableGroup'
+- name: environmentName
+  default: 'DEMO'
+- name: serviceName
+  default: ''
+- name: bicepFolderName
+  default: 'infra/Bicep'
+- name: bicepFileName
+  default: 'main.bicep'
+
+# ----------------------------------------------------------------------------------------------------
+jobs:
+- deployment: Add${{ parameters.environmentName }}KV${{ parameters.serviceName }}Deploy
+  displayName: Init Add ${{ parameters.environmentName }} KV ${{ parameters.serviceName }}
+  environment: ${{ parameters.environmentName }}
+
+- job: Add${{ parameters.environmentName }}KV${{ parameters.serviceName }}Job
+  displayName: Add ${{ parameters.environmentName }} KV ${{ parameters.serviceName }} Job
+  variables:
+    - group: ${{ parameters.variableGroupName }}
+    - name: templateFile
+      value: '$(Pipeline.Workspace)/s/${{ parameters.bicepFolderName }}/${{ parameters.bicepFileName }}'
+    - name: environmentNameLower
+      value: ${{ lower(parameters.environmentName) }}
+    - name: serviceName
+      value: ${{ parameters.serviceName }}
+
+  steps:
+  - bash: |
+      resourceGroupName=$(echo "$(resourceGroupPrefix)-$(environmentNameLower)" | tr '[:upper:]' '[:lower:]')
+      echo "resourceGroupName=$resourceGroupName"
+      echo "##vso[task.setvariable variable=resourceGroupName]$resourceGroupName"
+    displayName: 'Create Variables'
+    continueOnError: true
+      
+  - bash: |
+      echo "resourceGroupName=$(resourceGroupName)"
+      echo "serviceName=$(serviceName)"
+      echo "azureServiceConnection=$(azureServiceConnection)"
+      echo "subscriptionName=$(subscriptionName)"
+      echo "templateFile=$(templateFile)"
+      echo "System.DefaultWorkingDirectory=$(System.DefaultWorkingDirectory)"
+      tree $(Pipeline.Workspace)
+    displayName: 'Display Variables'
+    continueOnError: true
+
+  - task: AzureResourceManagerTemplateDeployment@3
+    displayName: 'Publish Bicep Resources'
+    inputs:
+      csmFile: $(templateFile)
+      overrideParameters: >
+        -orgName $(orgName) 
+        -envName $(environmentNameLower)
+        -serviceName $(serviceName)
+      action: 'Create Or Update Resource Group'
+      deploymentScope: 'Resource Group'
+      azureResourceManagerConnection: $(azureServiceConnection)
+      resourceGroupName: $(resourceGroupName)
+      location: $(location)
+      templateLocation: 'Linked artifact'
+      deploymentMode: 'Incremental'
+      deploymentOutputs: armDeployment

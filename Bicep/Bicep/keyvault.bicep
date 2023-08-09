@@ -2,8 +2,6 @@
 // This BICEP file will create a KeyVault
 // FYI: To purge a KV with soft delete enabled: > az keyvault purge --name kvName
 // --------------------------------------------------------------------------------
-// Remaining Cloud Defender Issue: Medium - Private endpoint should be configured for Key Vault
-// --------------------------------------------------------------------------------
 param keyVaultName string = 'mykeyvaultname'
 param location string = resourceGroup().location
 param commonTags object = {}
@@ -102,23 +100,16 @@ resource keyVaultResource 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
       name: skuName
     }
     tenantId: subTenantId
-
-    // Use Access Policies model
     enableRbacAuthorization: useRBAC
-    // add function app and web app identities in the access policies so they can read the secrets
     accessPolicies: accessPolicies
-
     enabledForDeployment: enabledForDeployment
     enabledForDiskEncryption: enabledForDiskEncryption
     enabledForTemplateDeployment: enabledForTemplateDeployment
     enableSoftDelete: enableSoftDelete
-
     enablePurgeProtection: enablePurgeProtection // Not allowing to purge key vault or its objects after deletion
     createMode: 'default'                        // Creating or updating the key vault (not recovering)
     softDeleteRetentionInDays: softDeleteRetentionInDays
-
     publicNetworkAccess: publicNetworkAccess   // Allow access from all networks
-
     networkAcls: {
       defaultAction: allowNetworkAccess
       bypass: 'AzureServices'

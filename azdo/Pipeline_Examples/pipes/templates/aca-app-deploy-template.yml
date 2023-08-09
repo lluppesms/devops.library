@@ -1,0 +1,124 @@
+# ----------------------------------------------------------------------------------------------------
+# Template to deploy a Docker image to a Container App
+# ----------------------------------------------------------------------------------------------------
+parameters:
+- name: variableGroupName
+  default: 'myVariableGroupName'
+  type: string
+- name: environmentName
+  default: 'DEMO'
+  type: string
+- name: serviceName
+  default: 'myServiceName'
+  type: string
+- name: containerPort
+  default: 6000
+  type: number
+- name: bicepFolderName
+  default: 'infra/Bicep'
+- name: bicepFileName
+  default: 'main-acaApp.bicep'
+
+
+# ----------------------------------------------------------------------------------------------------
+jobs:
+- deployment: InitDeploy${{ parameters.serviceName }}${{ parameters.environmentName }}App
+  displayName: Init Deploy ${{ parameters.serviceName }} ${{ parameters.environmentName }} App
+  environment: ${{ parameters.environmentName }}
+
+- job: DeployApp${{ parameters.serviceName }}${{ parameters.environmentName }}Job
+  displayName: Deploy ${{ parameters.serviceName }} ${{ parameters.environmentName }} Job
+  variables:
+    - group: ${{ parameters.variableGroupName }}
+    - name: environmentName
+      value: ${{ parameters.environmentName }}
+    - name: serviceName
+      value: ${{ parameters.serviceName }}
+    - name: containerPort
+      value: ${{ parameters.containerPort }}
+    - name: serviceTag
+      value: 'latest'
+    - name: templateFile
+      value: '$(Pipeline.Workspace)/s/${{ parameters.bicepFolderName }}/${{ parameters.bicepFileName }}'
+
+  steps:
+  - bash: |
+      environmentNameLower=$(echo "$(environmentName)" | tr '[:upper:]' '[:lower:]')
+      echo "environmentName=$(environmentName)"
+      echo "environmentNameLower=$environmentNameLower"
+      echo "##vso[task.setvariable variable=environmentNameLower]$environmentNameLower"
+
+      resourceGroupName=$(echo "$(resourceGroupPrefix)-$environmentNameLower" | tr '[:upper:]' '[:lower:]')
+      echo "resourceGroupName=$resourceGroupName"
+      echo "##vso[task.setvariable variable=resourceGroupName]$resourceGroupName"
+
+      orgNameLower=$(echo "$(orgName)" | tr '[:upper:]' '[:lower:]')
+      echo "orgName=$(orgName)"
+      echo "orgNameLower=$orgNameLower"
+      echo "##vso[task.setvariable variable=orgNameLower]$orgNameLower"
+
+      orgNameNoDashes=$(echo "${orgNameLower//-}")
+      echo "orgNameNoDashes=$orgNameNoDashes"
+      echo "##vso[task.setvariable variable=orgNameNoDashes]$orgNameNoDashes"
+
+      # acaeAcronym=acae
+      # acaEnvironmentName=$(echo "$orgNameLower-$acaeAcronym-$environmentNameLower")
+      # echo "acaEnvironmentName=$acaEnvironmentName"
+      # echo "##vso[task.setvariable variable=acaEnvironmentName]$acaEnvironmentName"
+      
+      acrAcronym=acr
+      containerRegistryName=$(echo "$orgNameNoDashes$acrAcronym$environmentNameLower")
+      echo "containerRegistryName=$containerRegistryName"
+      echo "##vso[task.setvariable variable=containerRegistryName]$containerRegistryName"
+
+      containerImageName=$(echo "$containerRegistryName.azurecr.io/$(acrFolderName)/$(serviceName):$(serviceTag)")
+      echo "containerImageName=$containerImageName"
+      echo "##vso[task.setvariable variable=containerImageName]$containerImageName"
+    displayName: 'Create Variables'
+    continueOnError: true
+
+  - bash: |
+      echo "resourceGroupName=$(resourceGroupName)"
+      echo "environmentName=$(environmentName)"
+      echo "environmentNameLower=$(environmentNameLower)"
+      echo "orgName=$(orgName)"
+      echo "orgNameLower=$(orgNameLower)"
+      echo "orgNameNoDashes=$(orgNameNoDashes)"
+      echo "containerImageName=$(containerImageName)"
+      # echo "acaEnvironmentName=$(acaEnvironmentName)"
+      # echo "containerAppEnvironmentName=$(acaEnvironmentName)"
+      echo "serviceName=$(serviceName)"
+      echo "serviceTag=$(serviceTag)"
+      echo "subFolderName=$(acrFolderName)"
+      echo "containerPort=$(containerPort)"
+      echo "useExternalIngress=false"
+      echo "acrPrincipalId=$(acrPrincipalId)"
+      echo "acrTenantId=$(acrTenantId)"
+      echo "templateFile=$(templateFile)"
+      echo "System.DefaultWorkingDirectory=$(System.DefaultWorkingDirectory)"
+      tree $(Pipeline.Workspace)
+    displayName: 'Display Variables'
+    continueOnError: true
+
+  - task: AzureResourceManagerTemplateDeployment@3
+    displayName: 'Publish Bicep Resources'
+    inputs:
+      csmFile: $(templateFile)
+      overrideParameters: >
+        -orgName $(orgName)
+        -envName $(environmentName)
+        -serviceName $(serviceName)
+        -serviceTag $(serviceTag)
+        -subFolderName $(acrFolderName)
+        -containerPort $(containerPort)
+        -useExternalIngress false
+        -acrAdminUserName $(acrAdminUserName) 
+        -acrAdminPassword $(acrAdminPassword)
+      action: 'Create Or Update Resource Group'
+      deploymentScope: 'Resource Group'
+      azureResourceManagerConnection: $(azureServiceConnection)
+      resourceGroupName: $(resourceGroupName)
+      location: $(location)
+      templateLocation: 'Linked artifact'
+      deploymentMode: 'Incremental'
+      deploymentOutputs: armDeployment

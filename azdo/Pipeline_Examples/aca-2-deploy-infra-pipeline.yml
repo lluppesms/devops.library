@@ -1,0 +1,40 @@
+# ----------------------------------------------------------------------------------------------------
+# Pipeline to deploy core Azure Container App resources
+# ----------------------------------------------------------------------------------------------------
+# This needs the variable group "TrafficControlDemo" - see readme.md for details.
+# ----------------------------------------------------------------------------------------------------
+name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
+pool:
+  vmImage: 'ubuntu-latest'
+# ----------------------------------------------------------------------------------------------------
+trigger: none
+
+parameters:
+  - name: deployInfrastructure
+    displayName: Deploy Infrastructure
+    type: boolean
+    default: true
+  - name: redeployContainerRights
+    displayName: Redeploy Container App Key Vault Rights
+    type: boolean
+    default: false
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- ${{ if eq(lower(parameters.deployInfrastructure), 'true') }}:
+  - template: pipes/infra-only-pipe.yml
+    parameters:
+      environments: ['DEMO']
+      variableGroupName: 'TrafficControlDemo'
+      bicepFolderName: 'infra/Bicep'
+      bicepFileName: 'main-infra.bicep'
+
+- ${{ if eq(lower(parameters.redeployContainerRights), 'true') }}:
+# if activated, this will add Key Vault rights for these container apps (which get wiped out when the infra is deployed)
+  - template: pipes/rights-only-pipe.yml
+    parameters:
+      environments: ['DEMO']
+      serviceNameArray: ['FineCollectionService','VehicleRegistrationService','TrafficControlService']
+      variableGroupName: 'TrafficControlDemo'
+      bicepFolderName: 'infra/Bicep'
+      bicepFileName: 'main-acaKeyVault.bicep'
