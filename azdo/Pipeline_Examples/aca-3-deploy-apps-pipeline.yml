@@ -52,8 +52,8 @@ stages:
       variableGroupName: 'TrafficControlDemo'
       serviceName: 'TrafficControlService'
       projectFolderName: 'TrafficControlService'
-
       containerPort: 6000
+
 # - ${{ if eq(lower(parameters.deploySimulation), 'true') }}:
 #   - template: pipes/aca-app-build-deploy-pipe.yml
 #     parameters:

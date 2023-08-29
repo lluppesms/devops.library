@@ -3,12 +3,13 @@
 // --------------------------------------------------------------------------------------------------------------
 param name string
 param location string
-param serviceBusName string
 param logAnalyticsName string
-//param logicAppEmailUrl string
 param logicAppEndpoint string
 param appInsightsName string
 param redisName string
+//param serviceBusName string -- you'll need this if you are storing secrets in the components
+param keyVaultName string
+param keyVaultPrincipalId string
 @description('The workspace to store audit logs.')
 @metadata({
   strongType: 'Microsoft.OperationalInsights/workspaces'
@@ -29,19 +30,19 @@ resource logAnalyticsResource 'Microsoft.OperationalInsights/workspaces@2020-03-
 var logAnalyticsKey = logAnalyticsResource.listKeys().primarySharedKey
 var logAnalyticsResourceCustomerId = logAnalyticsResource.properties.customerId
 
-resource redis 'Microsoft.Cache/redis@2022-06-01' existing = { 
-  name: redisName
-}
-var redisPrimaryKey = redis.listKeys().primaryKey
-
-resource serviceBusResource 'Microsoft.ServiceBus/namespaces@2018-01-01-preview' existing = { 
-  name: serviceBusName
-}
-resource serviceBusResourceRules 'Microsoft.ServiceBus/namespaces/AuthorizationRules@2021-06-01-preview' existing = {
-  name: 'RootManageSharedAccessKey'
-  parent: serviceBusResource
-}
-var serviceBusConnectString = serviceBusResourceRules.listKeys().primaryConnectionString
+// previous version where the secrets were stored in the component, not in the Key Vault...
+// resource redis 'Microsoft.Cache/redis@2022-06-01' existing = { 
+//   name: redisName
+// }
+// var redisPrimaryKey = redis.listKeys().primaryKey
+// resource serviceBusResource 'Microsoft.ServiceBus/namespaces@2018-01-01-preview' existing = { 
+//   name: serviceBusName
+// }
+// resource serviceBusResourceRules 'Microsoft.ServiceBus/namespaces/AuthorizationRules@2021-06-01-preview' existing = {
+//   name: 'RootManageSharedAccessKey'
+//   parent: serviceBusResource
+// }
+// var serviceBusConnectString = serviceBusResourceRules.listKeys().primaryConnectionString
 
 // --------------------------------------------------------------------------------------------------------------
 resource appInsightsResource 'Microsoft.Insights/components@2020-02-02-preview' = {
@@ -52,7 +53,6 @@ resource appInsightsResource 'Microsoft.Insights/components@2020-02-02-preview' 
   properties: {
     Application_Type: 'web'
     Request_Source: 'rest'
-    //RetentionInDays: 30
     publicNetworkAccessForIngestion: 'Enabled'
     publicNetworkAccessForQuery: 'Enabled'
     WorkspaceResourceId: workspaceId
@@ -75,7 +75,32 @@ resource acaEnvironment 'Microsoft.App/managedEnvironments@2022-03-01' = {
   }
 }
 
-resource daprStateStore 'Microsoft.App/managedEnvironments/daprComponents@2022-03-01' = {
+// For more info on KeyVaults in DAPR Components, see:
+//   https://endjin.com/blog/2022/05/adventures-in-dapr-ep02
+//   https://learn.microsoft.com/en-us/azure/container-apps/manage-secrets?tabs=arm-template
+//   https://learn.microsoft.com/en-us/azure/templates/microsoft.app/managedenvironments/daprcomponents?pivots=deployment-language-bicep
+resource daprSecretStore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
+  name: 'secretstore'
+  parent: acaEnvironment
+  properties: {
+    componentType: 'secretstores.azure.keyvault'
+    version: 'v1'
+    ignoreErrors: false
+    metadata: [
+      {
+        name: 'vaultName'
+        value: keyVaultName
+      }
+      {
+        name: 'azureClientId'
+        value: keyVaultPrincipalId
+      }
+    ]
+    scopes: [ 'trafficcontrolservice', 'finecollectionservice', 'vehicleregistrationservice' ]
+  }
+}
+
+resource daprStateStore 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   name: 'statestore'
   parent: acaEnvironment
   properties: {
@@ -83,19 +108,7 @@ resource daprStateStore 'Microsoft.App/managedEnvironments/daprComponents@2022-0
     version: 'v1'
     ignoreErrors: false
     initTimeout: '5m'
-    secrets: [
-      {
-        name: 'redispassword'
-        value: redisPrimaryKey
-      }
-      // See https://learn.microsoft.com/en-us/azure/container-apps/manage-secrets?tabs=arm-template
-      // See https://learn.microsoft.com/en-us/azure/templates/microsoft.app/managedenvironments/daprcomponents?pivots=deployment-language-bicep
-      // {
-      //   name: 'redispassword'
-      //   keyVaultUrl: 'https://myvaultname.vault.azure.net/secrets/cosmosConnectionString' ???
-      //   identity: 'System'
-      // }
-    ]
+    secretStoreComponent: daprSecretStore.name
     metadata: [
       {
         name: 'redisHost'
@@ -114,36 +127,37 @@ resource daprStateStore 'Microsoft.App/managedEnvironments/daprComponents@2022-0
         value: 'true'
       }
     ]
-    scopes: [
-      'trafficcontrolservice'
-    ]
+    scopes: [ 'trafficcontrolservice' ]
   }
 }
 
 // -- TODO: come up with a way to deploy either/or pubsub (cosmos or svcbus) based on a parameter
-// ( if pubsub = cosmos)
-// resource daprPubSub 'Microsoft.App/managedEnvironments/daprComponents@2022-03-01' = {
+// resource daprPubSubCosmos 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = (if pubSubTypeParm == 'cosmos') {
 //   name: 'pubsub'
 //   parent: acaEnvironment
 //   properties: {
 //     componentType: 'pubsub.azure.cosmodb'
-//     version: 'v1'
+//     ...
 //   }
 // }
-
-// ( if pubsub != rabbitmq)
-// resource daprPubSub 'Microsoft.App/managedEnvironments/daprComponents@2022-03-01' = {
+// resource daprPubSubRabbit 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = (if pubSubTypeParm == 'svcbus') {
 //   name: 'pubsub'
 //   parent: acaEnvironment
 //   properties: {
-//     componentType: 'pubsub.rabbitmq'
-//     version: 'v1'
+//     componentType: 'pubsub.azure.servicebus'
+//     ...
+//   }
+// }
+// resource daprPubSubRabbit 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = (if pubSubTypeParm == 'rabbitmq') {
+//   name: 'pubsub'
+//   parent: acaEnvironment
+//   properties: {
+//     componentType: 'pubsub.rabbitmq' ???
+//     ...
 //   }
 // }
 
-
-// ( if pubsub = svcbus)
-resource daprPubSub 'Microsoft.App/managedEnvironments/daprComponents@2022-03-01' = {
+resource daprPubSub 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   name: 'pubsub'
   parent: acaEnvironment
   properties: {
@@ -151,12 +165,7 @@ resource daprPubSub 'Microsoft.App/managedEnvironments/daprComponents@2022-03-01
     version: 'v1'
     ignoreErrors: false
     initTimeout: '5m'
-    secrets: [
-      {
-        name: 'servicebusconnectionstring'
-        value: serviceBusConnectString
-      }
-    ]
+    secretStoreComponent: daprSecretStore.name
     metadata: [
       {
         name: 'connectionString'
@@ -166,18 +175,7 @@ resource daprPubSub 'Microsoft.App/managedEnvironments/daprComponents@2022-03-01
     scopes: [ 'trafficcontrolservice', 'finecollectionservice' ]
   }
 }
-
-// this syntax is totally a guess and is probably wrong...
-// resource daprSecretStore 'Microsoft.App/managedEnvironments/daprComponents@2022-03-01' = {
-//   name: 'secretstore'
-//   parent: acaEnvironment
-//   properties: {
-//     componentType: 'keyvault'
-//     version: 'v1'
-//   }
-
-
-resource daprLogicAppEmailBinding 'Microsoft.App/managedEnvironments/daprComponents@2022-03-01' = {
+resource daprLogicAppEmailBinding 'Microsoft.App/managedEnvironments/daprComponents@2023-05-01' = {
   name: 'sendmail'
   parent: acaEnvironment
   properties: {
@@ -188,13 +186,10 @@ resource daprLogicAppEmailBinding 'Microsoft.App/managedEnvironments/daprCompone
     metadata: [
       {
         name: 'url'
-        //value: logicAppEmailUrl
         value: logicAppEndpoint
       }
     ]
-    scopes: [
-      'finecollectionservice'
-    ]
+    scopes: [ 'finecollectionservice' ]
   }
 }
 

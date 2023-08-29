@@ -21,7 +21,9 @@ param workspaceId string = ''
 
 // --------------------------------------------------------------------------------
 var templateTag = { TemplateFile: '~functionapp.bicep' }
+var azdTag = { 'azd-service-name': 'function' }
 var tags = union(commonTags, templateTag)
+var functionTags = union(commonTags, templateTag, azdTag)
 
 // --------------------------------------------------------------------------------
 resource storageAccountResource 'Microsoft.Storage/storageAccounts@2019-06-01' existing = { name: functionStorageAccountName }
@@ -71,7 +73,7 @@ resource functionAppResource 'Microsoft.Web/sites@2021-03-01' = {
   name: functionAppName
   location: location
   kind: functionKind
-  tags: tags
+  tags: functionTags
   identity: {
     type: 'SystemAssigned'
   }
@@ -123,18 +125,32 @@ resource functionAppResource 'Microsoft.Web/sites@2021-03-01' = {
       ftpsState: 'FtpsOnly'
       minTlsVersion: '1.2'
     }
-        scmSiteAlsoStopped: false
-        clientAffinityEnabled: false
-        clientCertEnabled: false
-        hostNamesDisabled: false
-        dailyMemoryTimeQuota: 0
-        httpsOnly: true
-        redundancyMode: 'None'
+    scmSiteAlsoStopped: false
+    clientAffinityEnabled: false
+    clientCertEnabled: false
+    hostNamesDisabled: false
+    dailyMemoryTimeQuota: 0
+    httpsOnly: true
+    redundancyMode: 'None'
+  }
+}
+
+resource functionAppConfig 'Microsoft.Web/sites/config@2018-11-01' = {
+  parent: functionAppResource
+  name: 'web'
+  properties: {
+    cors: {
+      allowedOrigins: [
+        'https://portal.azure.com'
+      ]
+      supportCredentials: false
+    }
   }
 }
 
 // resource functionAppConfig 'Microsoft.Web/sites/config@2018-11-01' = {
-//     name: '${functionAppResource.name}/web'
+//     parent: functionAppResource
+//     name: 'web'
 //     properties: {
 //         numberOfWorkers: -1
 //         defaultDocuments: [
@@ -228,10 +244,11 @@ resource functionAppMetricLogging 'Microsoft.Insights/diagnosticSettings@2021-05
       {
         category: 'AllMetrics'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true 
-        }
+        // Note: Causes error: Diagnostic settings does not support retention for new diagnostic settings.
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true 
+        // }
       }
     ]
   }
@@ -247,10 +264,11 @@ resource functionAppAuditLogging 'Microsoft.Insights/diagnosticSettings@2021-05-
       {
         category: 'FunctionAppLogs'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true 
-        }
+        // Note: Causes error: Diagnostic settings does not support retention for new diagnostic settings.
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true 
+        // }
       }
     ]
   }
@@ -264,15 +282,17 @@ resource appServiceMetricLogging 'Microsoft.Insights/diagnosticSettings@2021-05-
       {
         category: 'AllMetrics'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true 
-        }
+        // Note: Causes error: Diagnostic settings does not support retention for new diagnostic settings.
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true 
+        // }
       }
     ]
   }
 }
 
+// --------------------------------------------------------------------------------
 output principalId string = functionAppResource.identity.principalId
 output id string = functionAppResource.id
 output name string = functionAppName
