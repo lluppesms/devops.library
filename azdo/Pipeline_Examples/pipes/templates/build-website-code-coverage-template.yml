@@ -93,18 +93,13 @@ jobs:
     continueOnError: true
 
   - task: NuGetToolInstaller@1
-
-  - task: NuGetCommand@2
-    inputs:
-      command: 'restore'
-      restoreSolution: '$(rootDirectory)$(solution)'
-    continueOnError: true
+    displayName: 'Install Nuget'
 
   - script: |
       echo {"buildDate":"$(runDateTime)","buildNumber":"$(Build.BuildNumber)","buildId":"$(Build.BuildId)","branchName":"$(Build.SourceBranchName)","commitHash":"$(Build.SourceVersion)"} > $(rootDirectory)buildinfo.json
     displayName: "Put Build Details in buildinfo.json"
     continueOnError: true
-  # Not sure about the -e -n...  was that for Linux build server...?  If fails on Windows build server (adds the -e -n to the front of the file and all the quote marks)
+  # Not sure about the -e -n...  was that for Linux build server...?  It fails on Windows build server (adds the -e -n to the front of the file and all the quote marks)
   # - script: |
   #     echo -e -n "{\"buildDate\":\"$(runDateTime)\",\"buildNumber\":\"$(Build.BuildNumber)\",\"buildId\":\"$(Build.BuildId)\",\"branchName\":\"$(Build.SourceBranchName)\",\"commitHash\":\"$(Build.SourceVersion)\"}" > "$(rootDirectory)buildinfo.json"
   #   displayName: "Put Build Details in buildinfo.json"
@@ -179,7 +174,7 @@ jobs:
 
   - ${{ if eq(lower(parameters.runTests), 'true') }}:
     - task: DotNetCoreCLI@2
-      displayName: 'dotnet install reportgenerator'
+      displayName: 'Install Report Generator'
       inputs:
         command: custom
         custom: tool
