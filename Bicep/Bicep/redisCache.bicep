@@ -41,10 +41,11 @@ resource redisAuditLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-pre
       {
         category: 'connectedclientlist'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true 
-        }
+        // Note: Causes error: Diagnostic settings does not support retention for new diagnostic settings.
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true 
+        // }
       }
     ]
   }
@@ -59,10 +60,11 @@ resource redisMetricLogging 'Microsoft.Insights/diagnosticSettings@2021-05-01-pr
       {
         category: 'AllMetrics'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true 
-        }
+        // Note: Causes error: Diagnostic settings does not support retention for new diagnostic settings.
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true 
+        // }
       }
     ]
   }
