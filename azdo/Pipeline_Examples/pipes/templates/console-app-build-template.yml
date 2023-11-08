@@ -27,23 +27,63 @@ parameters:
   default: 'myVariableGroupName'
 - name: environmentName
   default:  'DEV'
+- name: projectPath
+  default: 'src/'
+- name: folderName
+  default: 'myFolderName'
+- name: solutionName
+  default: 'mySolutionName.sln'
+- name: projectName
+  default: 'myProjectName.csproj'
+- name: exeName
+  default: 'myExeName'
 
 # ------------------------------------------------------------------------------------------------------------------------
 jobs:
   - job: Build
-
     variables:
       - group: CodeSigning
-      - name: solution
-        value: 'Durable.Tester/*.sln'
       - name: buildPlatform
         value: 'Any CPU'
-      - name: exeName
-        value: Durable.Tester
       - name: buildConfiguration
         value: 'Release'
+      - name: variableGroupName
+        value: ${{ parameters.variableGroupName }}
+      - name: environmentName
+        value: ${{ parameters.environmentName }}
+      - name: projectPath
+        value: ${{ parameters.projectPath }}
+      - name: solutionName
+        value: ${{ parameters.solutionName }}
+      - name: projectName
+        value: ${{ parameters.projectName }}
+      - name: solutionPathName
+        value: '${{ parameters.projectPath }}${{ parameters.folderName }}/${{ parameters.solutionName }}'
+      - name: projectPathName
+        value: '${{ parameters.projectPath }}${{ parameters.folderName }}/${{ parameters.projectName }}'
+      - name: exeName
+        value: ${{ parameters.exeName }}
+      - name: folderName
+        value: ${{ parameters.folderName }}
 
     steps:
+    - task: CmdLine@2
+      inputs:
+        script: |
+          echo "variableGroupName=$(variableGroupName)"
+          echo "environmentName=$(environmentName)"
+          echo "projectPath=$(projectPath)"
+          echo "folderName=$(folderName)"
+          echo "solutionName=$(solutionName)"
+          echo "projectName=$(projectName)"
+          echo "solutionPathName=$(solutionPathName)"
+          echo "projectPathName=$(projectPathName)"
+          echo "exeName=$(exeName)"
+          echo "Directory of projectPath:"
+          dir "$(projectPath)" /s
+      displayName: 'Display Variables and Tree'
+      continueOnError: true
+
     - task: NuGetToolInstaller@1
 
     - task: DotNetCoreCLI@2
@@ -55,15 +95,16 @@ jobs:
       continueOnError: true
   
     - task: NuGetCommand@2
+      displayName: 'NuGet Restore'
       inputs:
-        restoreSolution: '$(solution)'
+        restoreSolution: '$(solutionPathName)'
 
     - task: VSBuild@1
       displayName: 'Build Program'
       inputs:
-        solution: '$(solution)'
-        platform: '$(buildPlatform)'
-        configuration: '$(buildConfiguration)'
+        solution: $(solutionPathName)
+        platform: $(buildPlatform)
+        configuration: $(buildConfiguration)
 
     #- task: VSTest@2
     #  displayName: 'Test Program'
@@ -76,19 +117,11 @@ jobs:
       displayName: Create win-x64 package
       inputs:
         command: publish
-        projects: '$(solution)'
+        projects: $(projectPathName)
         packDirectory: 
         publishWebProjects: false
         arguments: '--configuration $(BuildConfiguration) /p:PublishSingleFile=true --self-contained -f net6.0 -r win-x64 --output $(build.artifactstagingdirectory)/packages'
         zipAfterPublish: false
-
-    - task: CmdLine@2
-      displayName: 'Show Directory List'
-      inputs:
-        script: |
-          echo "Directory of pipeline workspace:"
-          tree $(Pipeline.Workspace)
-      continueOnError: true
 
     - task: PowerShell@2
       displayName: 'Sign win-x64 application'
@@ -96,7 +129,7 @@ jobs:
         targetType: 'inline'
         script: |
           cd $(build.artifactstagingdirectory)/packages
-          azuresigntool sign Durable.Tester/$(exeName).exe -kvu $(KeyVaultUrl) -kvi $(SigningAppRegAppId) -kvs $(SigningAppRegClientSecret) -kvt $(ActiveDirectoryTenantId) -kvc $(CertName) -tr $(TimestampUrl) -v
+          azuresigntool sign $(folderName)/$(exeName).exe -kvu $(KeyVaultUrl) -kvi $(SigningAppRegAppId) -kvs $(SigningAppRegClientSecret) -kvt $(ActiveDirectoryTenantId) -kvc $(CertName) -tr $(TimestampUrl) -v
       continueOnError: true
 
     - task: PowerShell@2
@@ -109,7 +142,7 @@ jobs:
           cd Deploy
           md win-x64
           cd ..
-          move Durable.Tester/$(exeName).exe $(build.artifactstagingdirectory)/packages/Deploy/win-x64/
+          move $(folderName)/$(exeName).exe $(build.artifactstagingdirectory)/packages/Deploy/win-x64/
         errorActionPreference: 'continue'
         failOnStderr: false
 
@@ -117,7 +150,7 @@ jobs:
       displayName: Create Linux package
       inputs:
         command: publish
-        projects: '$(solution)'
+        projects: $(projectPathName)
         publishWebProjects: false
         arguments: '--configuration $(BuildConfiguration) /p:PublishSingleFile=true --self-contained -f net6.0 -r linux-x64 --output $(build.artifactstagingdirectory)/packages'
         zipAfterPublish: false
@@ -131,7 +164,7 @@ jobs:
           cd Deploy
           md Linux
           cd ..
-          move Durable.Tester/$(exeName) $(build.artifactstagingdirectory)/packages/Deploy/Linux/
+          move $(folderName)/$(exeName) $(build.artifactstagingdirectory)/packages/Deploy/Linux/
         errorActionPreference: 'continue'
         failOnStderr: false
 

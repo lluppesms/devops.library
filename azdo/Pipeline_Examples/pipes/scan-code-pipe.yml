@@ -1,0 +1,30 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline Template to deploy Azure Resources Only
+# ------------------------------------------------------------------------------------------------------------------------
+parameters:
+- name: runDevSecOpsScan
+  default: 'None'
+- name: runGHAzDOScan
+  default: 'false'
+- name: workingDirectoryCode
+  default: 'src/myproject'
+- name: workingDirectoryInfra
+  default: '/infra/bicep'
+- name: workingDirectoryIgnore
+  default: '/docs'
+- name: continueOnScanError
+  default: 'true'
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- stage: ScanApplication
+  displayName: Scan Application
+  jobs:
+  - template: templates/scan-code-template.yml
+    parameters:
+      runDevSecOpsScan: ${{ parameters.runDevSecOpsScan }}
+      runGHAzDOScan: ${{ parameters.runGHAzDOScan }}
+      workingDirectoryCode: ${{ parameters.workingDirectoryCode }}
+      workingDirectoryInfra: ${{ parameters.workingDirectoryInfra }}
+      workingDirectoryIgnore: ${{ parameters.workingDirectoryIgnore }}
+      #continueOnScanError: ${{ parameters.continueOnScanError }}

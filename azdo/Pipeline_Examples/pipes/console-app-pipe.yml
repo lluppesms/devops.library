@@ -7,21 +7,42 @@ parameters:
   default: ['DEV']
 - name: variableGroupName
   default: 'myVariableGroupName'
+- name: projectPath
+  default: 'src/myFolderName/'
+- name: solutionName
+  default: 'myProjectName.sln'
+- name: projectName
+  default: 'myProjectName.csproj'
+- name: exeName
+  default: 'myExeName'
+- name: folderName
+  default: 'myFolderName'
+- name: runDevSecOpsScan
+  default: 'false'
+- name: runGHAzDOScan
+  default: 'false'
 
 # ------------------------------------------------------------------------------------------------------------------------
 stages:
 - stage: BuildTester
   displayName: Build Tester
   jobs:
-  #- template: templates/secure-devops-template.yml
-  #  parameters:
-  #    variableGroupName: ${{ parameters.variableGroupName }}
-  #    environmentName: 'DEV'
+  - ${{ if or(ne(lower(parameters.runDevSecOpsScan), 'none'), eq(lower(parameters.runGHAzDOScan), 'true')) }}:
+    - template: templates/scan-code-template.yml
+      parameters:
+        environmentName: 'DEV'
+        runDevSecOpsScan: ${{ parameters.runDevSecOpsScan }}
+        runGHAzDOScan: ${{ parameters.runGHAzDOScan }}
 
   - template: templates/console-app-build-template.yml
     parameters:
       variableGroupName: ${{ parameters.variableGroupName }}
       environmentName: 'DEV'
+      projectPath: ${{ parameters.projectPath }}
+      solutionName: ${{ parameters.solutionName }}
+      projectName: ${{ parameters.projectName }}
+      exeName: ${{ parameters.exeName }}
+      folderName: ${{ parameters.folderName }}
 
 # ----------------------------------------------------------------------------------------------------
 - ${{ each environmentName in parameters.environments }} :

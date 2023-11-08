@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------------------------------------------------
-# Pipe to deploy Azure Resources Only for multiple environments
+# Pipeline Template to deploy Azure Resources Only
 # ------------------------------------------------------------------------------------------------------------------------
 parameters:
 - name: environments
@@ -7,28 +7,28 @@ parameters:
   default: ['DEMO']
 - name: variableGroupName
   default: 'myVariableGroupName'
-- name: bicepFolderName
-  default: 'infra/Bicep'
-- name: bicepFileName
-  default: 'main.bicep'
+- name: runDevSecOpsScan
+  default: 'false'
+- name: runGHAzDOScan
+  default: 'false'
 
 # ----------------------------------------------------------------------------------------------------
 stages:
-#- stage: ScanApplication
-#  displayName: Scan Application
-#  jobs:
-#  - template: templates/secure-devops-template.yml
-#    parameters:
-#      variableGroupName: ${{ parameters.variableGroupName }}
-#      environmentName: 'DEV'
+- ${{ if or(ne(lower(parameters.runDevSecOpsScan), 'none'), eq(lower(parameters.runGHAzDOScan), 'true')) }}:
+  - stage: ScanApplication
+    displayName: Scan Application
+    jobs:
+    - template: templates/scan-code-template.yml
+      parameters:
+        environmentName: 'DEV'
+        runDevSecOpsScan: ${{ parameters.runDevSecOpsScan }}
+        runGHAzDOScan: ${{ parameters.runGHAzDOScan }}
 
 - ${{ each environmentName in parameters.environments }} :
-  - stage: CreateInfra${{ environmentName }}
-    displayName: Create ${{ environmentName }} Resources
+  - stage: CreateInfrastructure${{ environmentName }}
+    displayName: ${{ environmentName }} Infrastructure
     jobs:
     - template: templates/create-infra-template.yml
       parameters:
         variableGroupName: ${{ parameters.variableGroupName }}
         environmentName: ${{ environmentName }}
-        bicepFolderName: ${{ parameters.bicepFolderName }}
-        bicepFileName: ${{ parameters.bicepFileName }}

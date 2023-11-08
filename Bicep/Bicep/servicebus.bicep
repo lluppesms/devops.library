@@ -6,6 +6,8 @@ param location string = resourceGroup().location
 param topicNames array = [ 'topic1Name' ]
 param queueNames array = ['queue1Name', 'queue2Name']
 param commonTags object = {}
+param skuName string = 'Standard'
+param skuTier string =  'Standard'
 
 @description('The workspace to store audit logs.')
 param workspaceId string = ''
@@ -23,8 +25,8 @@ resource serviceBusResource 'Microsoft.ServiceBus/namespaces@2022-01-01-preview'
     type: 'SystemAssigned'
   }
   sku: {
-    name: 'Basic'
-    tier: 'Basic'
+    name: skuName
+    tier: skuTier
   }
   properties: {
     minimumTlsVersion: '1.2'
@@ -46,7 +48,24 @@ resource serviceBusAccessKeyResource 'Microsoft.ServiceBus/namespaces/Authorizat
   }
 }
 
-resource serviceBusTopic 'Microsoft.ServiceBus/namespaces/topics@2017-04-01' = [for topicName in topicNames: {
+resource serviceBusAccessKeyResourceSend 'Microsoft.ServiceBus/namespaces/AuthorizationRules@2022-01-01-preview' = {
+  parent: serviceBusResource
+  name: 'send'
+  properties: {
+    rights: [ 'Send' ]
+  }
+}
+
+resource serviceBusAccessKeyResourceListen 'Microsoft.ServiceBus/namespaces/AuthorizationRules@2022-01-01-preview' = {
+  parent: serviceBusResource
+  name: 'listen'
+  properties: {
+    rights: [ 'Listen' ]
+  }
+}
+
+
+resource serviceBusTopic 'Microsoft.ServiceBus/namespaces/topics@2022-10-01-preview' = [for topicName in topicNames: {
   name: topicName
   parent: serviceBusResource
 }]
@@ -81,18 +100,18 @@ resource serviceBusAuditLogging 'Microsoft.Insights/diagnosticSettings@2021-05-0
       {
         category: 'OperationalLogs'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true 
-        }
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true 
+        // }
       }
       {
         category: 'RuntimeAuditLogs'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true 
-        }
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true 
+        // }
       }
     ]
   }
@@ -107,10 +126,10 @@ resource serviceBusMetricLogging 'Microsoft.Insights/diagnosticSettings@2021-05-
       {
         category: 'AllMetrics'
         enabled: true
-        retentionPolicy: {
-          days: 30
-          enabled: true 
-        }
+        // retentionPolicy: {
+        //   days: 30
+        //   enabled: true 
+        // }
       }
     ]
   }

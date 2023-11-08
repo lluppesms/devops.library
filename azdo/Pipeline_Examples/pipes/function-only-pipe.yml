@@ -7,23 +7,35 @@ parameters:
   default: ['DEV']
 - name: variableGroupName
   default: 'myVariableGroupName'
-- name: projectDirectory
-  default: 'src/myProjectDirectory'
+- name: runDevSecOpsScan
+  default: 'false'
+- name: runGHAzDOScan
+  default: 'false'
+- name: workingDirectoryCode
+  default: 'src/myproject'
+- name: workingDirectoryInfra
+  default: '/infra/bicep'
 
 # ----------------------------------------------------------------------------------------------------
 stages:
 - stage: BuildApplication
   displayName: Build Application
   jobs:
-  #- template: templates/secure-devops-template.yml
-  #  parameters:
-  #    variableGroupName: ${{ parameters.variableGroupName }}
-  #    environmentName: 'DEV'
+  - ${{ if or(ne(lower(parameters.runDevSecOpsScan), 'none'), eq(lower(parameters.runGHAzDOScan), 'true')) }}:
+    - template: templates/scan-code-template.yml
+      parameters:
+        environmentName: 'DEV'
+        runDevSecOpsScan: ${{ parameters.runDevSecOpsScan }}
+        runGHAzDOScan: ${{ parameters.runGHAzDOScan }}
+        workingDirectoryCode: ${{ parameters.workingDirectoryCode }}
+        workingDirectoryInfra: ${{ parameters.workingDirectoryInfra }}
+
   - template: templates/build-function-template.yml
     parameters:
       variableGroupName: ${{ parameters.variableGroupName }}
       environmentName: 'DEV'
-      projectDirectory: ${{ parameters.projectDirectory }}
+      workingDirectoryCode: ${{ parameters.workingDirectoryCode }}
+      workingDirectoryInfra: ${{ parameters.workingDirectoryInfra }}
 
 # ----------------------------------------------------------------------------------------------------
 - ${{ each environmentName in parameters.environments }} :
