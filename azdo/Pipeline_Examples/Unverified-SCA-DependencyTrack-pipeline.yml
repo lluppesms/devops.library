@@ -1,0 +1,40 @@
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- group: DevSecOps-Variables
+
+steps:
+
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      npm install --global @cyclonedx/cyclonedx-npm
+      npm i -g typescript ts-node
+      npm install --production --unsafe-perm
+      npm dedupe
+  displayName: 'Run a multi-line script'
+  
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      $npmPrefix = npm config get prefix; $env:Path += ";$npmPrefix"; [Environment]::SetEnvironmentVariable("Path", $env:Path, [EnvironmentVariableTarget]::User)
+      cyclonedx-npm --output-file '$(Build.SourcesDirectory)/bom.xml'
+  displayName: 'Create BOM'
+
+- task: upload-bom-dtrack-task@1
+  displayName: 'Upload BOM to Dependency-Track'
+  inputs:
+    bomFilePath: '$(Build.SourcesDirectory)/bom.xml'
+    dtrackProjId: 'dec861c7-afa8-44d1-9aeb-624f952a40f4'
+    dtrackAPIKey: 'K8EHNJMl44HyMoo4lTINmta1T38FXmNd'
+    dtrackURI: 'https://dependency-track-devsecops-$(LabInstanceID).azurewebsites.net'
+    thresholdAction: 'warn'
+    thresholdCritical: '0'
+    thresholdHigh: '0'
+    thresholdMedium: '0'
+    thresholdLow: '0'

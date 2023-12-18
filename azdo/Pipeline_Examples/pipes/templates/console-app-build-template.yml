@@ -23,8 +23,6 @@
 #   az pipelines variable-group create --name CodeSigning --variables SubscriptionName=<serviceConnectionName> KeyVaultUrl=https://<yourCertVaultName>.vault.azure.net/ CertName=<certName> SigningAppRegAppId=<appId> SigningAppRegClientSecret=<clientSecret> ActiveDirectoryTenantId=<tenantId> TimestampUrl=: http://timestamp.digicert.com
 # ------------------------------------------------------------------------------------------------------------------------
 parameters:
-- name: variableGroupName
-  default: 'myVariableGroupName'
 - name: environmentName
   default:  'DEV'
 - name: projectPath
@@ -47,8 +45,6 @@ jobs:
         value: 'Any CPU'
       - name: buildConfiguration
         value: 'Release'
-      - name: variableGroupName
-        value: ${{ parameters.variableGroupName }}
       - name: environmentName
         value: ${{ parameters.environmentName }}
       - name: projectPath
@@ -70,7 +66,6 @@ jobs:
     - task: CmdLine@2
       inputs:
         script: |
-          echo "variableGroupName=$(variableGroupName)"
           echo "environmentName=$(environmentName)"
           echo "projectPath=$(projectPath)"
           echo "folderName=$(folderName)"

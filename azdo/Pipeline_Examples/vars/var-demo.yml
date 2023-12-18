@@ -1,0 +1,6 @@
+# ----------------------------------------------------------------------------------------------------
+# Variables specific to the DEMO environment
+# ----------------------------------------------------------------------------------------------------
+variables:
+  - name: envSpecificServiceEndpointName
+    value: 'Demo Service Connection'

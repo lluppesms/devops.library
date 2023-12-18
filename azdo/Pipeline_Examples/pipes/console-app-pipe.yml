@@ -5,21 +5,21 @@ parameters:
 - name: environments
   type: object
   default: ['DEV']
-- name: variableGroupName
-  default: 'myVariableGroupName'
 - name: projectPath
   default: 'src/myFolderName/'
 - name: solutionName
   default: 'myProjectName.sln'
 - name: projectName
   default: 'myProjectName.csproj'
+- name: projectExtension
+  default: 'csproj'
 - name: exeName
   default: 'myExeName'
 - name: folderName
   default: 'myFolderName'
-- name: runDevSecOpsScan
+- name: runGHASScan
   default: 'false'
-- name: runGHAzDOScan
+- name: runMSDevSecOpsScan
   default: 'false'
 
 # ------------------------------------------------------------------------------------------------------------------------
@@ -27,16 +27,19 @@ stages:
 - stage: BuildTester
   displayName: Build Tester
   jobs:
-  - ${{ if or(ne(lower(parameters.runDevSecOpsScan), 'none'), eq(lower(parameters.runGHAzDOScan), 'true')) }}:
+  - ${{ if or(eq(lower(parameters.runMSDevSecOpsScan), 'true'), eq(lower(parameters.runGHASScan), 'true')) }}:
     - template: templates/scan-code-template.yml
       parameters:
         environmentName: 'DEV'
-        runDevSecOpsScan: ${{ parameters.runDevSecOpsScan }}
-        runGHAzDOScan: ${{ parameters.runGHAzDOScan }}
+        runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
+        runGHASScan: ${{ parameters.runGHASScan }}
+        appFolderName: ${{ parameters.folderName }}
+        appSolutionName: ${{ parameters.solutionName }}
+        appProjectFolderName: ${{ parameters.folderName }}
+        appProjectExtension: ${{ parameters.projectExtension }}
 
   - template: templates/console-app-build-template.yml
     parameters:
-      variableGroupName: ${{ parameters.variableGroupName }}
       environmentName: 'DEV'
       projectPath: ${{ parameters.projectPath }}
       solutionName: ${{ parameters.solutionName }}
@@ -51,5 +54,4 @@ stages:
     jobs:
     - template: templates/console-app-deploy-template.yml
       parameters:
-        variableGroupName: ${{ parameters.variableGroupName }}
         environmentName: ${{ environmentName }}

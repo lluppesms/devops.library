@@ -2,8 +2,6 @@
 # Template to deploy Azure Resources for one environment
 # ----------------------------------------------------------------------------------------------------
 parameters:
-- name: variableGroupName
-  default: 'myVariableGroup'
 - name: environmentName
   default: 'DEV'
 - name: templateFolderName
@@ -20,7 +18,6 @@ jobs:
 - job: CreateInfraJob
   displayName: Create Infrastructure
   variables:
-    - group: ${{ parameters.variableGroupName }}
     - name: environmentNameUpper
       value: ${{ upper(parameters.environmentName) }}
     - name: environmentNameLower

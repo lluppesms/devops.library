@@ -1,0 +1,22 @@
+{
+    "appInsightsSuffix": "insights",
+    "appServicePlanSuffix": "appsvc",
+    "bastionAbbreviation": "bastion",
+    "containerAppsEnvironment": "acae",
+    "containerRegistry": "acr",
+    "cosmosDb": "cosmos",
+    "iotHub": "iothub",
+    "keyVaultAbbreviation": "vault",
+    "logicApp": "la",
+    "logworkspace": "logworkspace",
+    "logWorkspaceSuffix": "logworkspace",
+    "networkSecurityGroupAbbreviation": "nsg",
+    "privateEndpointAbbreviation": "pe",
+    "publicIpAbbreviation": "pip",
+    "redis": "redis",
+    "serviceBus": "svcbus",
+    "sqlAbbreviation": "sql",
+    "storageAccountSuffix": "store",
+    "vnetAbbreviation": "vnet",
+    "webSiteSuffix": "web"
+}

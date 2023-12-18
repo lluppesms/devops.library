@@ -1,0 +1,6 @@
+# ----------------------------------------------------------------------------------------------------
+# Variables specific to the PROD environment
+# ----------------------------------------------------------------------------------------------------
+variables:
+  - name: envSpecificServiceEndpointName
+    value: 'Prod Service Connection'

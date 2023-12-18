@@ -5,37 +5,39 @@ parameters:
 - name: environments
   type: object
   default: ['DEV']
-- name: variableGroupName
-  default: 'myVariableGroupName'
-- name: runDevSecOpsScan
+- name: runGHASScan
   default: 'false'
-- name: runGHAzDOScan
+- name: runMSDevSecOpsScan
   default: 'false'
-- name: workingDirectoryCode
-  default: 'src/myproject'
-- name: workingDirectoryInfra
-  default: '/infra/bicep'
+- name: appFolderName
+  default: ''
+- name: appSolutionName
+  default: ''
+- name: appProjectFolderName
+  default: ''
+- name: appProjectExtension
+  default: 'csproj'
 
 # ----------------------------------------------------------------------------------------------------
 stages:
 - stage: BuildApplication
   displayName: Build Application
   jobs:
-  - ${{ if or(ne(lower(parameters.runDevSecOpsScan), 'none'), eq(lower(parameters.runGHAzDOScan), 'true')) }}:
+  - ${{ if or(eq(lower(parameters.runMSDevSecOpsScan), 'true'), eq(lower(parameters.runGHASScan), 'true')) }}:
     - template: templates/scan-code-template.yml
       parameters:
-        environmentName: 'DEV'
-        runDevSecOpsScan: ${{ parameters.runDevSecOpsScan }}
-        runGHAzDOScan: ${{ parameters.runGHAzDOScan }}
-        workingDirectoryCode: ${{ parameters.workingDirectoryCode }}
-        workingDirectoryInfra: ${{ parameters.workingDirectoryInfra }}
+        environmentName: 'DEMO'
+        runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
+        runGHASScan: ${{ parameters.runGHASScan }}
+        appFolderName: ${{ parameters.appFolderName }}
+        appSolutionName: ${{ parameters.appSolutionName }}
+        appProjectFolderName: ${{ parameters.appProjectFolderName }}
+        appProjectExtension: ${{ parameters.appProjectExtension }}
 
   - template: templates/build-function-template.yml
     parameters:
-      variableGroupName: ${{ parameters.variableGroupName }}
       environmentName: 'DEV'
-      workingDirectoryCode: ${{ parameters.workingDirectoryCode }}
-      workingDirectoryInfra: ${{ parameters.workingDirectoryInfra }}
+      appFolderName: ${{ parameters.appFolderName }}
 
 # ----------------------------------------------------------------------------------------------------
 - ${{ each environmentName in parameters.environments }} :
@@ -46,7 +48,6 @@ stages:
     jobs:
     - template: templates/create-infra-template.yml
       parameters:
-        variableGroupName: ${{ parameters.variableGroupName }}
         environmentName: ${{ environmentName }}
 
   - stage: Deploy${{ environmentName }}App
@@ -56,5 +57,4 @@ stages:
     jobs:
     - template: templates/deploy-function-template.yml
       parameters:
-        variableGroupName: ${{ parameters.variableGroupName }}
         environmentName: ${{ environmentName }}

@@ -1,0 +1,6 @@
+# ----------------------------------------------------------------------------------------------------
+# Variables specific to the QA environment
+# ----------------------------------------------------------------------------------------------------
+variables:
+  - name: envSpecificServiceEndpointName
+    value: 'QA Service Connection'

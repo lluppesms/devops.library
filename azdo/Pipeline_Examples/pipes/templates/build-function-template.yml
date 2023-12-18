@@ -2,8 +2,6 @@
 # Template to build Azure Function and create artifacts
 # ----------------------------------------------------------------------------------------------------
 parameters: 
-- name: variableGroupName
-  default:  'myVariableGroup'
 - name: environmentName
   default:  'DEV'
 - name: projectDirectory

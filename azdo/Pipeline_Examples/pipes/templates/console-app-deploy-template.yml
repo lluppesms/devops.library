@@ -23,8 +23,6 @@
 #   az pipelines variable-group create --name CodeSigning --variables SubscriptionName=<serviceConnectionName> KeyVaultUrl=https://<yourCertVaultName>.vault.azure.net/ CertName=<certName> SigningAppRegAppId=<appId> SigningAppRegClientSecret=<clientSecret> ActiveDirectoryTenantId=<tenantId> TimestampUrl=: http://timestamp.digicert.com
 # ------------------------------------------------------------------------------------------------------------------------
 parameters:
-- name: variableGroupName
-  default: 'myVariableGroupName'
 - name: environmentName
   default:  'DEV'
 - name: blobPrefix

@@ -1,0 +1,6 @@
+# ----------------------------------------------------------------------------------------------------
+# Variables specific to the DEV environment
+# ----------------------------------------------------------------------------------------------------
+variables:
+  - name: envSpecificServiceEndpointName
+    value: 'Dev Service Connection'

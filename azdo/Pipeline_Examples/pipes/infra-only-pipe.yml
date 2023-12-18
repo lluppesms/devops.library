@@ -5,30 +5,41 @@ parameters:
 - name: environments
   type: object
   default: ['DEMO']
-- name: variableGroupName
-  default: 'myVariableGroupName'
-- name: runDevSecOpsScan
+- name: runGHASScan
   default: 'false'
-- name: runGHAzDOScan
+- name: runMSDevSecOpsScan
   default: 'false'
+- name: appFolderName
+  default: ''
+- name: appSolutionName
+  default: ''
+- name: appProjectFolderName
+  default: ''
+- name: appProjectName
+  default: ''
+- name: appProjectExtension
+  default: 'csproj'
 
 # ----------------------------------------------------------------------------------------------------
 stages:
-- ${{ if or(ne(lower(parameters.runDevSecOpsScan), 'none'), eq(lower(parameters.runGHAzDOScan), 'true')) }}:
+- ${{ if or(eq(lower(parameters.runMSDevSecOpsScan), 'true'), eq(lower(parameters.runGHASScan), 'true')) }}:
   - stage: ScanApplication
     displayName: Scan Application
     jobs:
     - template: templates/scan-code-template.yml
       parameters:
-        environmentName: 'DEV'
-        runDevSecOpsScan: ${{ parameters.runDevSecOpsScan }}
-        runGHAzDOScan: ${{ parameters.runGHAzDOScan }}
+        environmentName: 'DEMO'
+        runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
+        runGHASScan: ${{ parameters.runGHASScan }}
+        appFolderName: ${{ parameters.appFolderName }}
+        appSolutionName: ${{ parameters.appSolutionName }}
+        appProjectFolderName: ${{ parameters.appProjectFolderName }}
+        appProjectExtension: ${{ parameters.appProjectExtension }}
 
 - ${{ each environmentName in parameters.environments }} :
-  - stage: CreateInfrastructure${{ environmentName }}
-    displayName: ${{ environmentName }} Infrastructure
+  - stage: CreateInfra${{ environmentName }}
+    displayName: Create ${{ environmentName }} Resources
     jobs:
     - template: templates/create-infra-template.yml
       parameters:
-        variableGroupName: ${{ parameters.variableGroupName }}
         environmentName: ${{ environmentName }}
