@@ -1,12 +1,12 @@
 # ------------------------------------------------------------------------------------------------------------------------
-# Pipeline to deploy Azure Resources Only
-# See readme file for info about variable group "Dadabase.Function.Keys"
+# Pipeline to build and deploy Azure Resources and Application
+# See readme file for info about variable group "FunctionDemo"
 # ------------------------------------------------------------------------------------------------------------------------
 name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
 pool:
-  vmImage: ubuntu-latest  #windows-latest
+  vmImage: ubuntu-latest
 variables:
-  - group: Dadabase.Function.Keys
+  - group: FunctionDemo
 
 # ------------------------------------------------------------------------------------------------------------------------
 trigger:
@@ -16,11 +16,11 @@ trigger:
   # branches:
   #   include:
   #     - main
+  #   exclude:
+  #     - '**/*.md'
   # paths:
-  #   include: 
-  #     - '**/*.yml'
-  #     - '**/*.yaml'
-  #     - '**/*.bicep'
+  #   include:
+  #     - 'src/Functions/*'
 
 # ----------------------------------------------------------------------------------------------------
 parameters:
@@ -40,15 +40,21 @@ parameters:
 # ----------------------------------------------------------------------------------------------------
 stages:
 - ${{ if eq(lower(parameters.deployMultiStage), 'false') }}:
-  - template: pipes/infra-only-pipe.yml
+  - template: pipes/infra-and-function-pipe.yml
     parameters:
       environments: ['DEMO']
+      appFolderName: 'src/Function.Demo'
+      appSolutionName: 'Function.Demo'
+      appProjectFolderName: 'src/Function.Demo'
       runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
       runGHASScan: ${{ parameters.runGHASScan }}
 
 - ${{ if eq(lower(parameters.deployMultiStage), 'true') }}:
-  - template: pipes/infra-only-pipe.yml
+  - template: pipes/infra-and-function-pipe.yml
     parameters:
-      environments: ['DEV','PROD']
+      environments: ['DEV','QA']
+      appFolderName: 'src/Function.Demo'
+      appSolutionName: 'Function.Demo'
+      appProjectFolderName: 'src/Function.Demo'
       runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
       runGHASScan: ${{ parameters.runGHASScan }}

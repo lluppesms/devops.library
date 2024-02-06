@@ -1,6 +1,6 @@
 # ----------------------------------------------------------------------------------------------------
 # Pipeline to deploy a Function App from an existing artifact
-# See readme file for info about variable group "Dadabase.Function.Keys"
+# See readme file for info about variable group "DurableDemo"
 # ----------------------------------------------------------------------------------------------------
 # NOTE: This pipeline assumes that the artifact has already been created by a previous pipeline
 # ----------------------------------------------------------------------------------------------------
@@ -13,7 +13,7 @@ name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
 pool:
   vmImage: ubuntu-latest
 variables:
-  - group: Dadabase.Function.Keys
+  - group: DurableDemo
 
 # ----------------------------------------------------------------------------------------------------
 trigger:
@@ -22,34 +22,46 @@ trigger:
 # ----------------------------------------------------------------------------------------------------
 resources:
   pipelines:
-  - pipeline: dadabase.func.build.deploy # internal identifier for the resource
-    source: dadabase.func.infra.and.build.deploy   # name of the pipeline that produces an artifact
-    #source: dadabase.func.build.deploy   # name of the pipeline that produces an artifact
-    branch: main                          # should only allow builds from the main branch to be used
+  - pipeline: durable.function-only # internal identifier for the resource
+    source: durable.function-only   # name of the pipeline that produces an artifact
+    branch: main                    # should only allow builds from the main branch to be used
 
 # ----------------------------------------------------------------------------------------------------
 parameters:
   - name: deployToEnvironment
-    displayName: Deploy To
+    displayName: Environment
     type: string
     values:
       - DEMO
       - DEV
       - QA
       - PROD
-      - MULTIPLE
     default: DEV
 
 # ----------------------------------------------------------------------------------------------------
 stages:
-- ${{ if ne(parameters.deployToEnvironment, 'MULTIPLE') }}:
-  - template: pipes/deploy-only-pipe.yml
-    parameters:
-      environments: [ '${{ parameters.deployToEnvironment }}' ]
-      pipelineResourceIdentifier: 'dadabase.func.build.deploy'
+- template: pipes/deploy-only-pipe.yml
+  parameters:
+    environments: [ '${{ parameters.deployToEnvironment }}' ]
+    pipelineResourceIdentifier: 'durable.function-only'
 
-- ${{ if eq(parameters.deployToEnvironment, 'MULTIPLE') }}:
-  - template: pipes/deploy-only-pipe.yml
-    parameters:
-      environments: ['DEV','PROD']
-      pipelineResourceIdentifier: 'dadabase.func.build.deploy'
+# ----------------------------------------------------------------------------------------------------
+# A slightly different version that lets you deploy to multiple stages at once...
+# ----------------------------------------------------------------------------------------------------
+# parameters:
+#   - name: deployMultiStage
+#     displayName: Multi-Stage Deploy
+#     type: boolean
+#     default: false
+# # ----------------------------------------------------------------------------------------------------
+# stages:
+# - ${{ if eq(lower(parameters.deployMultiStage), 'false') }}:
+#   - template: pipes/deploy-only-pipe.yml
+#     parameters:
+#       environments: ['DEMO']
+#       pipelineResourceIdentifier: 'durable.function-only'
+# - ${{ if eq(lower(parameters.deployMultiStage), 'true') }}:
+#   - template: pipes/deploy-only-pipe.yml
+#     parameters:
+#       environments: ['DEV','QA']
+#       pipelineResourceIdentifier: 'durable.function-only'

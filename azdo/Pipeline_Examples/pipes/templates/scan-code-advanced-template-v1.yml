@@ -35,6 +35,18 @@ parameters:
   default: 'false'
 - name: runMSDevSecOpsScan
   default: 'false'
+- name: appFolderName
+  default: ''
+- name: appSolutionName
+  default: ''
+- name: appProjectFolderName
+  default: '/src/DirWhereProjLives'
+- name: appProjectExtension
+  default: 'csproj'
+- name: workingDirectoryInfra
+  default: '/infra/bicep'
+- name: workingDirectoryIgnore
+  default: '/Docs'
 - name: continueOnScanError
   default: 'true'
 
@@ -50,36 +62,22 @@ jobs:
 - ${{ if eq(lower(parameters.runGHASScan), 'true') }}:
   - job: GHAzDOScanJob
     displayName: GHAzDO Scan Job
-    variables:
-      - name: continueAfterScanErrors
-        value: ${{ eq(parameters.continueOnScanError, 'true') }}
-      # Bring in environment common variable file
-      - template: ../../vars/var-common.yml
-      # Bring in environment specific variable files
-      - ${{ if eq(lower(parameters.environmentName), 'demo') }}:
-        - template: ../../vars/var-demo.yml
-      - ${{ if eq(lower(parameters.environmentName), 'dev') }}:
-        - template: ../../vars/var-dev.yml
-      - ${{ if eq(lower(parameters.environmentName), 'qa') }}:
-        - template: ../../vars/var-qa.yml
-      - ${{ if eq(lower(parameters.environmentName), 'prod') }}:
-        - template: ../../vars/var-prod.yml
     steps:
     - task: CmdLine@2
       inputs:
         script: |
           echo "parameters.continueOnScanError=${{ parameters.continueOnScanError }}"
-          echo "appProjectFolderName=$(appProjectFolderName)"
-          echo "workingDirectoryInfra=$(workingDirectoryInfra)"
-          echo "workingDirectoryIgnore=$(workingDirectoryInfra)"
-          echo "Project Path: $(Build.SourcesDirectory)\$(appProjectFolderName)\*.$(appProjectExtension)"
+          echo "parameters.appProjectFolderName=${{ parameters.appProjectFolderName }}"
+          echo "parameters.workingDirectoryInfra=${{ parameters.workingDirectoryInfra }}"
+          echo "parameters.workingDirectoryIgnore=${{ parameters.workingDirectoryIgnore }}"
+          echo "Project Path: $(Build.SourcesDirectory)\${{ parameters.appProjectFolderName }}\*.{{ parameters.appProjectExtension }}"
           echo "Build.SourcesDirectory=$(Build.SourcesDirectory)"
           echo "------------------------------------------------"
-          echo "Directory of Project Files: $(Build.SourcesDirectory)/$(appProjectFolderName)"
-          tree L -3 $(Build.SourcesDirectory)/$(appProjectFolderName)
+          echo "Directory of Project Files: $(Build.SourcesDirectory)/${{ parameters.appProjectFolderName }}"
+          tree L -3 $(Build.SourcesDirectory)/${{ parameters.appProjectFolderName }}
           echo "------------------------------------------------"
           echo "Directory of Full Staging Directory: $(Build.SourcesDirectory)"
-          tree -L 4 $(Build.SourcesDirectory)
+          tree -L 3 $(Build.SourcesDirectory)
       displayName: 'Display Variables and Tree'
       continueOnError: true
 
@@ -87,22 +85,22 @@ jobs:
       inputs:
         languages: 'csharp'
         querysuite: security-extended
-      #   codeqlpathstoinclude: $(appProjectFolderName)
-      #   codeqlpathstoignore: $(workingDirectoryInfra)
-      #   sourcesfolder: $(appProjectFolderName)
+      #   codeqlpathstoinclude: ${{ parameters.appProjectFolderName }}
+      #   codeqlpathstoignore: ${{ parameters.workingDirectoryIgnore }}
+      #   sourcesfolder: ${{ parameters.appProjectFolderName }}
 
-    - ${{ if eq(lower(appProjectExtension), 'csproj') }}:
+    - ${{ if eq(lower(parameters.appProjectExtension), 'csproj') }}:
       - task: DotNetCoreCLI@2
         displayName: Build CS Project
         inputs:
-          projects: '$(Build.SourcesDirectory)/$(appProjectFolderName)/*.$(appProjectFolderName)'
+          projects: '$(Build.SourcesDirectory)/${{ parameters.appProjectFolderName }}/*.${{ parameters.appProjectExtension }}'
           arguments: '--output publish_output --configuration Release'
 
-    - ${{ if eq(lower(appProjectExtension), 'sqlproj') }}:
+    - ${{ if eq(lower(parameters.appProjectExtension), 'sqlproj') }}:
       - task: VSBuild@1
         displayName: Build DacPac Project
         inputs:
-          solution: '$(appFolderName)/$(appSolutionName).sln'
+          solution: '${{ parameters.appFolderName }}/${{ parameters.appSolutionName }}.sln'
           platform: 'Any CPU'
           configuration: 'Release'
 
@@ -116,7 +114,7 @@ jobs:
       # 3.  AutoBuild may not be suitable for your project. Replace the AutoBuild task in your pipeline with the normal build tasks
       #     to build your project. This will give you more control over the build steps.
       # I already built this in one of the previous steps, so I'm skipping this step.
-      # - ${{ if eq(lower(appProjectExtension), 'csproj') }}:
+      # - ${{ if eq(lower(parameters.appProjectExtension), 'csproj') }}:
       #   - task: AdvancedSecurity-Codeql-Autobuild@1
       #     displayName: GHAS AutoBuild
       #     continueOnError: ${{ eq(parameters.continueOnScanError, 'true') }}
@@ -135,28 +133,17 @@ jobs:
   variables:
     - name: continueAfterScanErrors
       value: ${{ eq(parameters.continueOnScanError, 'true') }}
-    # Bring in environment common variable file
-    - template: ../../vars/var-common.yml
-    # Bring in environment specific variable files
-    - ${{ if eq(lower(parameters.environmentName), 'demo') }}:
-      - template: ../../vars/var-demo.yml
-    - ${{ if eq(lower(parameters.environmentName), 'dev') }}:
-      - template: ../../vars/var-dev.yml
-    - ${{ if eq(lower(parameters.environmentName), 'qa') }}:
-      - template: ../../vars/var-qa.yml
-    - ${{ if eq(lower(parameters.environmentName), 'prod') }}:
-      - template: ../../vars/var-prod.yml
   steps:
   - ${{ if ne(lower(parameters.runMSDevSecOpsScan), 'none') }}:
     - bash: |
         echo "parameters.runMSDevSecOpsScan=${{parameters.runMSDevSecOpsScan}}"
-        echo "appProjectFolderName=${{appProjectFolderName}}"
-        echo "workingDirectoryInfra=${{workingDirectoryInfra}}"
-        echo "workingDirectoryIgnore=${{workingDirectoryIgnore}}"
+        echo "parameters.appProjectFolderName=${{parameters.appProjectFolderName}}"
+        echo "parameters.workingDirectoryInfra=${{parameters.workingDirectoryInfra}}"
+        echo "parameters.workingDirectoryIgnore=${{parameters.workingDirectoryIgnore}}"
         echo "continueAfterScanErrors=$(continueAfterScanErrors)"
         echo "parameters.continueOnScanError=${{parameters.continueOnScanError}}"
         echo "Directory Listing for $(Pipeline.Workspace)"
-        tree -L 4 $(Pipeline.Workspace)
+        tree -L 3 $(Pipeline.Workspace)
       displayName: 'Display Variables'
       continueOnError: true
     - task: UseDotNet@2
@@ -196,7 +183,7 @@ jobs:
       inputs:
         script: |
           echo "Directory of pipeline workspace: $(Pipeline.Workspace)"
-          tree -L 4 $(Pipeline.Workspace)
+          tree -L 3 $(Pipeline.Workspace)
       displayName: 'Display Files'
       continueOnError: true
     - task: PublishBuildArtifacts@1
@@ -250,7 +237,7 @@ jobs:
         categories: code,artifacts
         tools: eslint,binskim  # antimalware
       env:
-        gdn_run_workingdirectory: $(appProjectFolderName)
+        gdn_run_workingdirectory: ${{ parameters.appProjectFolderName }}
       continueOnError: ${{ eq(parameters.continueOnScanError, 'true') }}
     - task: PublishBuildArtifacts@1
       displayName: Publish Scan Results
@@ -269,7 +256,7 @@ jobs:
         categories: IaC,containers
         tools: templateanalyzer,terrascan
       env:
-        gdn_run_workingdirectory: $(workingDirectoryInfra)
+        gdn_run_workingdirectory: ${{ parameters.workingDirectoryInfra }}
       continueOnError: ${{ eq(parameters.continueOnScanError, 'true') }}
     - task: PublishBuildArtifacts@1
       displayName: Publish Scan Results
@@ -289,7 +276,7 @@ jobs:
         categories: code,artifacts
         tools: eslint,binskim  # antimalware
       env:
-        gdn_run_workingdirectory: $(workingDirectoryInfra)
+        gdn_run_workingdirectory: ${{ parameters.workingDirectoryInfra }}
       continueOnError: ${{ eq(parameters.continueOnScanError, 'true') }}
     - task: PublishBuildArtifacts@1
       displayName: Publish Scan Results
@@ -310,7 +297,7 @@ jobs:
         categories: IaC,containers
         tools: templateanalyzer,terrascan
       env:
-        gdn_run_workingdirectory: $(appProjectFolderName)
+        gdn_run_workingdirectory: ${{ parameters.appProjectFolderName }}
     - task: PublishBuildArtifacts@1
       displayName: Publish Scan Results
       inputs:

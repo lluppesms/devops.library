@@ -1,14 +1,14 @@
-# ------------------------------------------------------------------------------------------------------------------------
-# Pipeline to deploy Azure Resources Only
-# See readme file for info about variable group "Dadabase.Function.Keys"
-# ------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
+# Pipeline to deploy a Function App
+# See readme file for info about variable group "DurableDemo"
+# ----------------------------------------------------------------------------------------------------
 name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
 pool:
-  vmImage: ubuntu-latest  #windows-latest
+  vmImage: ubuntu-latest
 variables:
-  - group: Dadabase.Function.Keys
+  - group: DurableDemo
 
-# ------------------------------------------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------------------------------------
 trigger:
   # since this repo has both AzDO and GHA pipelines, nothing is run automatically...
   - none
@@ -17,10 +17,13 @@ trigger:
   #   include:
   #     - main
   # paths:
-  #   include: 
+  #   include:
+  #     - FunctionApp
+  #   exclude: 
   #     - '**/*.yml'
   #     - '**/*.yaml'
   #     - '**/*.bicep'
+  #     - '**/*.md'
 
 # ----------------------------------------------------------------------------------------------------
 parameters:
@@ -40,15 +43,22 @@ parameters:
 # ----------------------------------------------------------------------------------------------------
 stages:
 - ${{ if eq(lower(parameters.deployMultiStage), 'false') }}:
-  - template: pipes/infra-only-pipe.yml
+  - template: pipes/function-only-pipe.yml
     parameters:
       environments: ['DEMO']
+      appFolderName: 'src/Durable.Demo'
+      appSolutionName: 'Durable.Demo'
+      appProjectFolderName: 'src/Durable.Demo'
       runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
       runGHASScan: ${{ parameters.runGHASScan }}
 
 - ${{ if eq(lower(parameters.deployMultiStage), 'true') }}:
-  - template: pipes/infra-only-pipe.yml
+  - template: pipes/function-only-pipe.yml
     parameters:
-      environments: ['DEV','PROD']
+      variableGroupName: 'DurableDemo'
+      environments: ['DEV','QA']
+      appFolderName: 'src/Durable.Demo'
+      appSolutionName: 'Durable.Demo'
+      appProjectFolderName: 'src/Durable.Demo'
       runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
       runGHASScan: ${{ parameters.runGHASScan }}

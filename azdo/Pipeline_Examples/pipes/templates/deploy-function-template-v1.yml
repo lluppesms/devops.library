@@ -36,16 +36,7 @@ jobs:
 
   steps:
   - bash: |
-      echo "environmentSpecificFunctionName=$(environmentSpecificFunctionName)"
-      echo "appName=$(appName)"
-      echo "environmentName=$(environmentName)"
-      if [[ '$(environmentSpecificFunctionName)' == '' ]]; then
-        echo "Using environment coded app name: $(appName)-$(environmentName)"
-        functionAppName=$(echo "$(appName)-$(environmentName)" | tr '[:upper:]' '[:lower:]')
-      else 
-        echo "Using environment specific hard-coded name: $(environmentSpecificFunctionName)"
-        functionAppName=$(echo "$(environmentSpecificFunctionName)" | tr '[:upper:]' '[:lower:]')
-      fi
+      functionAppName=$(echo "$(appName)-$(environmentName)" | tr '[:upper:]' '[:lower:]')
       echo "##vso[task.setvariable variable=functionAppName]$functionAppName"
       echo "----------------------------------------"
       echo "Display Current Environment Variables:"
@@ -59,7 +50,7 @@ jobs:
     - task: DownloadPipelineArtifact@2
       displayName: 'Download Pipeline Artifacts'
       inputs:
-          artifact: drop
+        artifact: drop
 
   # ----------------------------------------------------------------------------------------------------
   # else if a Pipeline Resource WAS supplied, then show info about the it and copy it over (previously built elsewhere)
@@ -86,7 +77,7 @@ jobs:
           echo "requestedFor: $(resources.pipeline.${{ parameters.pipelineResourceIdentifier }}.requestedFor)"
           echo "requestedForID: $(resources.pipeline.${{ parameters.pipelineResourceIdentifier }}.requestedForID)"
           echo "Directory of $(pipelineResourcePath):"
-          tree -L 4 $(Build.SourcesDirectory)
+          tree -L 3 $(Build.SourcesDirectory)
       displayName: 'Display Artifact Info'
       continueOnError: true
 
@@ -103,13 +94,16 @@ jobs:
   - task: CmdLine@2
     inputs:
       script: |
-        echo "environmentSpecificFunctionName=$(environmentSpecificFunctionName)"
-        echo "functionAppName=$(functionAppName)"
+        echo "Environment Specific Variables:"
+        echo "  applicationCommonName=$(applicationCommonName)"
+        echo "  envSpecificServiceEndpointName=$(envSpecificServiceEndpointName)"
+
         echo "serviceConnectionName=$(serviceConnectionName)"
-        echo "appName=$(appName)"
+        echo "azureSubscription=$(azureSubscription)"
         echo "environmentName=$(environmentName)"
+        echo "functionAppName=$(functionAppName)"
         echo "Directory of pipeline workspace:"
-        tree -L 4 $(Pipeline.Workspace)
+        tree -L 3 $(Pipeline.Workspace)
     displayName: 'Display Variables and Tree'
     continueOnError: true
 
@@ -117,7 +111,7 @@ jobs:
     displayName: 'Function App Deploy'
     retryCountOnTaskFailure: 2
     inputs:
-      azureSubscription: $(serviceConnectionName)
+      azureSubscription: $(azureSubscription)
       appType: functionAppLinux
       appName: $(functionAppName)
       package: $(Pipeline.Workspace)/*.zip

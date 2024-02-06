@@ -35,9 +35,5 @@ stages:
   - template: pipes/templates/scan-code-template.yml
     parameters:
       environmentName: 'DEMO'
-      appFolderName: 'src/Durable.Demo'
-      appSolutionName: 'Durable.Demo'
-      appProjectFolderName: 'src/Durable.Demo'
-      appProjectExtension: 'csproj'
       runGHASScan: ${{ parameters.runGHASScan }}
       runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}

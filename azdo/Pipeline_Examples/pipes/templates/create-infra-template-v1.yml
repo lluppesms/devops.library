@@ -1,6 +1,5 @@
-﻿# ----------------------------------------------------------------------------------------------------
-# Template to deploy Azure Resources in a bicep file in one environment
-# This template is optimized for a Linux build agent -- see create-infra-win.yml for a Windows build agent
+# ----------------------------------------------------------------------------------------------------
+# Template to deploy Azure Resources for one environment
 # ----------------------------------------------------------------------------------------------------
 parameters:
 - name: environmentName
@@ -9,8 +8,6 @@ parameters:
   default: 'infra/Bicep'
 - name: templateFileName
   default: 'main.bicep'
-- name: parameterFileName
-  default: 'main.parameters.json'
 
 # ----------------------------------------------------------------------------------------------------
 jobs:
@@ -21,29 +18,14 @@ jobs:
 - job: CreateInfraJob
   displayName: Create Infrastructure
   variables:
-    - name: environmentName
-      value: ${{ parameters.environmentName }}
     - name: environmentNameUpper
       value: ${{ upper(parameters.environmentName) }}
     - name: environmentNameLower
       value: ${{ lower(parameters.environmentName) }}
     - name: templateFile
       value: '$(Pipeline.Workspace)/s/${{ parameters.templateFolderName }}/${{ parameters.templateFileName }}'
-    - name: parameterFile
-      value: '$(Pipeline.Workspace)/s/${{ parameters.templateFolderName }}/${{ parameters.parameterFileName }}'
     - name: compiledJsonFile
       value: '${{ parameters.templateFolderName }}/compiled.json'
-    # Bring in environment common variable file
-    - template: ../../vars/var-common.yml
-    # Bring in environment specific variable files
-    - ${{ if eq(lower(parameters.environmentName), 'demo') }}:
-      - template: ../../vars/var-demo.yml
-    - ${{ if eq(lower(parameters.environmentName), 'dev') }}:
-      - template: ../../vars/var-dev.yml
-    - ${{ if eq(lower(parameters.environmentName), 'qa') }}:
-      - template: ../../vars/var-qa.yml
-    - ${{ if eq(lower(parameters.environmentName), 'prod') }}:
-      - template: ../../vars/var-prod.yml
 
   steps:
   - bash: |
@@ -66,39 +48,31 @@ jobs:
     displayName: 'Create Variables'
     continueOnError: true
 
-  - task: Bash@3
-    displayName: 'Display Variables'
-    continueOnError: true
-    inputs:
-      targetType: 'inline'
-      script: 'env | sort'
-    # this script version also works
-    # - script: |
-    #     for var in $(compgen -e); do
-    #       echo $var ${!var};
-    #     done
-    # and this PowerShell Script works too
-    # - task: PowerShell@2
-    #   inputs:
-    #     targetType: 'inline'
-    #     script: Get-ChildItem -Path Env:\ | Format-List
-
   - bash: |
+      echo "serviceConnectionName=$(serviceConnectionName)"
+      echo "resourceGroupName=$(resourceGroupName)"
+      echo "environmentNameUpper=$(environmentNameUpper)"
+      echo "environmentNameLower=$(environmentNameLower)"
+      echo "location=$(location)"
+      echo "appName=$(appName)"
+      echo "appNameLower=$(appNameLower)"
+      echo "templateFile=$(templateFile)"
+      echo "compiledJsonFile=$(compiledJsonFile)"
+      echo "Resource Group Command:"
+      echo "  az group create --name $(resourceGroupName) --location $(location) --tags LastDeployed=$(runDateTime) Application=$(appName) Environment=$(environmentNameUpper)"
+      echo "Bicep Deploy Sample Command:"
+      echo "  az deployment group create -n main-deploy-$(runDateTimeZ) --resource-group $(resourceGroupName) --template-file 'main.bicep' --parameters environmentCode $(environmentNameLower) location $(location) appName $(appName) storageSku $(storageSku) functionAppSku $(functionAppSku) functionAppSkuFamily $(functionAppSkuFamily) functionAppSkuTier $(functionAppSkuTier) keyVaultOwnerUserId $(keyVaultOwnerUserId) keyVaultOwnerUserId2 $(keyVaultOwnerUserId2) runDateTime $(runDateTime)"
       echo "Directory of pipeline workspace:"
       tree $(Pipeline.Workspace)
-    displayName: 'Display Files (Linux)'
+    displayName: 'Display Variables'
     continueOnError: true
 
   # Login is needed if you are pulling Bicep files from an Azure Container Registry
   # -script: az login --service-principal -u $(principalId) -p $(clientSecret) --tenant $(tenantId)
   #   displayName: 'az login'
 
-  - task: qetza.replacetokens.replacetokens-task.replacetokens@3
-    displayName: 'Create Parameter File'
-    inputs:
-      targetFiles: $(parameterFile)
-      tokenPrefix: '#{'
-      tokenSuffix: '}#'
+  # - script: az bicep build --file $(templateFile) --outfile $(compiledJsonFile)
+  #   displayName: 'Compile Bicep file'
 
   - task: AzureCLI@2
     displayName: 'Create Resource Group'
@@ -112,7 +86,11 @@ jobs:
     displayName: 'Publish Bicep Resources'
     inputs:
       csmFile: $(templateFile)
-      csmParametersFile: $(parameterFile)
+      overrideParameters: >
+        -appName $(appName)
+        -environmentCode $(environmentNameLower)
+        -keyVaultOwnerUserId $(keyVaultOwnerUserId)
+        -location $(location)
       deploymentScope: 'Resource Group'
       azureResourceManagerConnection: $(serviceConnectionName)
       action: 'Create Or Update Resource Group'
@@ -120,8 +98,3 @@ jobs:
       location: '$(location)'
       templateLocation: 'Linked artifact'
       deploymentMode: 'Incremental'
-
-  - bash: |
-      echo "WIPED!" > $(parameterFile)
-    displayName: 'Wipe Parameter File'
-    condition: always()

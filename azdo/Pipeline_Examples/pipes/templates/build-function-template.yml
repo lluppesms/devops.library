@@ -4,8 +4,6 @@
 parameters: 
 - name: environmentName
   default:  'DEV'
-- name: projectDirectory
-  default: 'src/myProjectDirectory'
 
 # ----------------------------------------------------------------------------------------------------
 jobs:
@@ -15,43 +13,69 @@ jobs:
 
 - job: Build${{ parameters.environmentName }}Function
   displayName: Build ${{ parameters.environmentName }} Function
-  
   variables:
-    - group: ${{ parameters.variableGroupName }}
-    - name: projectDirectory
-      value: ${{ parameters.projectDirectory }}
-    - name: projectFileName
-      value: '$(projectDirectory)/*.csproj'
+    - name: environmentName
+      value: ${{ parameters.environmentName }}
+    # Bring in environment common variable file
+    - template: ../../vars/var-common.yml
+    # Bring in environment specific variable files
+    - ${{ if eq(lower(parameters.environmentName), 'demo') }}:
+      - template: ../../vars/var-demo.yml
+    - ${{ if eq(lower(parameters.environmentName), 'dev') }}:
+      - template: ../../vars/var-dev.yml
+    - ${{ if eq(lower(parameters.environmentName), 'qa') }}:
+      - template: ../../vars/var-qa.yml
+    - ${{ if eq(lower(parameters.environmentName), 'prod') }}:
+      - template: ../../vars/var-prod.yml
 
   steps:
-  - bash: |
-      echo "Build.ArtifactStagingDirectory=$(Build.ArtifactStagingDirectory)"
-      echo "System.DefaultWorkingDirectory=$(System.DefaultWorkingDirectory)"
-      echo "Build.BuildId=$(Build.BuildId)"
-      echo "appName=$(appName)"
-      echo "projectFileName=$(projectFileName)"
-    continueOnError: true
+  # - bash: |
+  #     echo "Build.ArtifactStagingDirectory=$(Build.ArtifactStagingDirectory)"
+  #     echo "System.DefaultWorkingDirectory=$(System.DefaultWorkingDirectory)"
+  #     echo "Build.BuildId=$(Build.BuildId)"
+  #     echo "appName=$(appName)"
+  #     echo "appFolderName=$(appFolderName)"
+  #   continueOnError: true
+  #   displayName: 'Display Variables'
+
+  - task: Bash@3
     displayName: 'Display Variables'
+    continueOnError: true
+    inputs:
+      targetType: 'inline'
+      script: |
+        echo "Build.ArtifactStagingDirectory=$(Build.ArtifactStagingDirectory)"
+        echo "System.DefaultWorkingDirectory=$(System.DefaultWorkingDirectory)"
+        echo "Build.BuildId=$(Build.BuildId)"
+        echo "Environment Variables:"
+        env | sort
+
+  - task: CmdLine@2
+    inputs:
+      script: |
+        echo "Directory of pipeline workspace:"
+        tree -L 4 $(Pipeline.Workspace)
+    displayName: 'Display Files'
+    continueOnError: true
 
   - task: DotNetCoreCLI@2
-    displayName: 'Build Project'
+    displayName: 'Build project'
     inputs:
-      command: build
-      projects: $(projectFileName)
-      arguments: '--configuration Release' 
+      projects: '$(appFolderName)/*.csproj'
+      arguments: '--output publish_output --configuration Release'
 
-  - task: DotNetCoreCLI@2
-    displayName: 'Dotnet Publish'
+  - task: ArchiveFiles@2
+    displayName: 'Zip Output'
     inputs:
-      command: publish
-      publishWebProjects: false
-      zipAfterPublish: true
-      projects: $(projectFileName)
-      arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/App/'
+      rootFolderOrFile: '$(System.DefaultWorkingDirectory)/publish_output'
+      includeRootFolder: false
+      archiveType: zip
+      archiveFile: $(Build.ArtifactStagingDirectory)/$(appName)-$(Build.BuildId).zip
+      replaceExistingArchive: true
 
-  - task: PublishBuildArtifacts@1
-    displayName: 'Save Artifacts'
+  - task: PublishPipelineArtifact@1
+    displayName: 'Publish Artifact'
     inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)/App/'
-      ArtifactName: App
-      publishLocation: Container                        
+      targetPath: '$(Build.ArtifactStagingDirectory)'
+      artifact: drop
+      publishLocation: 'pipeline'

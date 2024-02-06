@@ -1,12 +1,12 @@
 # ------------------------------------------------------------------------------------------------------------------------
 # Pipeline to deploy Azure Resources Only
-# See readme file for info about variable group "Dadabase.Function.Keys"
+# See readme file for info about variable group "FunctionDemo"
 # ------------------------------------------------------------------------------------------------------------------------
 name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
 pool:
-  vmImage: ubuntu-latest  #windows-latest
+  vmImage: ubuntu-latest
 variables:
-  - group: Dadabase.Function.Keys
+  - group: FunctionDemo
 
 # ------------------------------------------------------------------------------------------------------------------------
 trigger:
@@ -43,12 +43,18 @@ stages:
   - template: pipes/infra-only-pipe.yml
     parameters:
       environments: ['DEMO']
+      appFolderName: 'src/Function.Demo'
+      appSolutionName: 'Function.Demo'
+      appProjectFolderName: 'src/Function.Demo'
       runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
       runGHASScan: ${{ parameters.runGHASScan }}
 
 - ${{ if eq(lower(parameters.deployMultiStage), 'true') }}:
   - template: pipes/infra-only-pipe.yml
     parameters:
-      environments: ['DEV','PROD']
+      environments: ['DEV','QA']
+      appFolderName: 'src/Function.Demo'
+      appSolutionName: 'Function.Demo'
+      appProjectFolderName: 'src/Function.Demo'
       runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
       runGHASScan: ${{ parameters.runGHASScan }}

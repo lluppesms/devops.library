@@ -1,6 +1,13 @@
 # ----------------------------------------------------------------------------------------------------
 # Variables specific to the DEV environment
 # ----------------------------------------------------------------------------------------------------
+# Note: I haven't gotten the service connection to work yet, so I'm leaving it misnamed out for now.
+# ----------------------------------------------------------------------------------------------------
+# You could put other environment-specific variables here as needed, or move things out of the
+# common file if you want to make them different for each environment, like the SKU or location.
+# ----------------------------------------------------------------------------------------------------
 variables:
-  - name: envSpecificServiceEndpointName
+  - name: thisDoesntWork_serviceConnectionName
     value: 'Dev Service Connection'
+  - name: environmentSpecificFunctionName
+    value: ''

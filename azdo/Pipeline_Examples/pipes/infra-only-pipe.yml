@@ -9,16 +9,6 @@ parameters:
   default: 'false'
 - name: runMSDevSecOpsScan
   default: 'false'
-- name: appFolderName
-  default: ''
-- name: appSolutionName
-  default: ''
-- name: appProjectFolderName
-  default: ''
-- name: appProjectName
-  default: ''
-- name: appProjectExtension
-  default: 'csproj'
 
 # ----------------------------------------------------------------------------------------------------
 stages:
@@ -26,15 +16,15 @@ stages:
   - stage: ScanApplication
     displayName: Scan Application
     jobs:
+    # - ${{ if or(eq(lower(parameters.runMSDevSecOpsScan), 'true'), eq(lower(parameters.runGHASScan), 'true')) }}:
     - template: templates/scan-code-template.yml
       parameters:
         environmentName: 'DEMO'
         runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
         runGHASScan: ${{ parameters.runGHASScan }}
-        appFolderName: ${{ parameters.appFolderName }}
-        appSolutionName: ${{ parameters.appSolutionName }}
-        appProjectFolderName: ${{ parameters.appProjectFolderName }}
-        appProjectExtension: ${{ parameters.appProjectExtension }}
+    # - ${{ else }}:
+    #   - job: ScanSkippedJob
+    #     displayName: Skipping Scan
 
 - ${{ each environmentName in parameters.environments }} :
   - stage: CreateInfra${{ environmentName }}

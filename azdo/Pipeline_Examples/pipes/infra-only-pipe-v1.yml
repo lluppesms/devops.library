@@ -1,14 +1,24 @@
 # ------------------------------------------------------------------------------------------------------------------------
-# Pipeline Template to build and deploy Azure Resources and Application
+# Pipeline Template to deploy Azure Resources Only
 # ------------------------------------------------------------------------------------------------------------------------
 parameters:
 - name: environments
   type: object
-  default: ['DEV']
+  default: ['DEMO']
 - name: runGHASScan
   default: 'false'
 - name: runMSDevSecOpsScan
   default: 'false'
+- name: appFolderName
+  default: ''
+- name: appSolutionName
+  default: ''
+- name: appProjectFolderName
+  default: ''
+- name: appProjectName
+  default: ''
+- name: appProjectExtension
+  default: 'csproj'
 
 # ----------------------------------------------------------------------------------------------------
 stages:
@@ -21,31 +31,15 @@ stages:
         environmentName: 'DEMO'
         runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
         runGHASScan: ${{ parameters.runGHASScan }}
+        appFolderName: ${{ parameters.appFolderName }}
+        appSolutionName: ${{ parameters.appSolutionName }}
+        appProjectFolderName: ${{ parameters.appProjectFolderName }}
+        appProjectExtension: ${{ parameters.appProjectExtension }}
 
-# ----------------------------------------------------------------------------------------------------
-- stage: BuildApplication
-  displayName: Build Application
-  jobs:
-  - template: templates/build-function-template.yml
-    parameters:
-      environmentName: 'DEV'
-
-# ----------------------------------------------------------------------------------------------------
 - ${{ each environmentName in parameters.environments }} :
-  - stage: CreateInfrastructure${{ environmentName }}
-    displayName: ${{ environmentName }} Infrastructure
-    dependsOn: BuildApplication
-    condition: succeeded('BuildApplication')
+  - stage: CreateInfra${{ environmentName }}
+    displayName: Create ${{ environmentName }} Resources
     jobs:
     - template: templates/create-infra-template.yml
-      parameters:
-        environmentName: ${{ environmentName }}
-
-  - stage: Deploy${{ environmentName }}App
-    displayName: Deploy ${{ environmentName }} App
-    dependsOn: CreateInfrastructure${{ environmentName }}
-    condition: succeeded('CreateInfrastructure${{ environmentName }}')
-    jobs:
-    - template: templates/deploy-function-template.yml
       parameters:
         environmentName: ${{ environmentName }}

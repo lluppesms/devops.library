@@ -1,12 +1,11 @@
 ﻿# ----------------------------------------------------------------------------------------------------
 # Template to deploy Azure Resources in a bicep file in one environment
-# This template is optimized for a Linux build agent -- see create-infra-win.yml for a Windows build agent
 # ----------------------------------------------------------------------------------------------------
 parameters:
 - name: environmentName
   default: 'DEV'
 - name: templateFolderName
-  default: 'infra/Bicep'
+  default: 'infra\Bicep'
 - name: templateFileName
   default: 'main.bicep'
 - name: parameterFileName
@@ -21,29 +20,24 @@ jobs:
 - job: CreateInfraJob
   displayName: Create Infrastructure
   variables:
-    - name: environmentName
-      value: ${{ parameters.environmentName }}
     - name: environmentNameUpper
       value: ${{ upper(parameters.environmentName) }}
     - name: environmentNameLower
       value: ${{ lower(parameters.environmentName) }}
+    # If you use Windows Build agents, use the \ delimter, if Ubuntu Linux, use the / delimiter
     - name: templateFile
-      value: '$(Pipeline.Workspace)/s/${{ parameters.templateFolderName }}/${{ parameters.templateFileName }}'
+      value: '$(Pipeline.Workspace)\s\${{ parameters.templateFolderName }}\${{ parameters.templateFileName }}'
     - name: parameterFile
-      value: '$(Pipeline.Workspace)/s/${{ parameters.templateFolderName }}/${{ parameters.parameterFileName }}'
+      value: '$(Pipeline.Workspace)\s\${{ parameters.templateFolderName }}\${{ parameters.parameterFileName }}'
     - name: compiledJsonFile
-      value: '${{ parameters.templateFolderName }}/compiled.json'
-    # Bring in environment common variable file
-    - template: ../../vars/var-common.yml
-    # Bring in environment specific variable files
-    - ${{ if eq(lower(parameters.environmentName), 'demo') }}:
-      - template: ../../vars/var-demo.yml
-    - ${{ if eq(lower(parameters.environmentName), 'dev') }}:
-      - template: ../../vars/var-dev.yml
-    - ${{ if eq(lower(parameters.environmentName), 'qa') }}:
-      - template: ../../vars/var-qa.yml
-    - ${{ if eq(lower(parameters.environmentName), 'prod') }}:
-      - template: ../../vars/var-prod.yml
+      value: '${{ parameters.templateFolderName }}\compiled.json'
+    # Linux version of variables
+    # - name: templateFile
+    #   value: '$(Pipeline.Workspace)/s/${{ parameters.templateFolderName }}/${{ parameters.templateFileName }}'
+    # - name: parameterFile
+    #   value: '$(Pipeline.Workspace)/s/${{ parameters.templateFolderName }}/${{ parameters.parameterFileName }}'
+    # - name: compiledJsonFile
+    #   value: '${{ parameters.templateFolderName }}/compiled.json'
 
   steps:
   - bash: |
@@ -83,10 +77,20 @@ jobs:
     #     targetType: 'inline'
     #     script: Get-ChildItem -Path Env:\ | Format-List
 
-  - bash: |
-      echo "Directory of pipeline workspace:"
-      tree $(Pipeline.Workspace)
-    displayName: 'Display Files (Linux)'
+  # - bash: |
+  #     echo "Directory of pipeline workspace:"
+  #     tree $(Pipeline.Workspace)
+  #   displayName: 'Display Files (Linux)'
+  #   condition: eq(variables['AGENT.OS'], 'Linux')
+  #   continueOnError: true
+  - task: CmdLine@2
+    inputs:
+      script: |
+        echo "Tree and files in pipeline workspace:"
+        tree $(Pipeline.Workspace)
+        dir $(Pipeline.Workspace) /s
+    displayName: 'Display Files (Windows)'
+    #condition: eq(variables['AGENT.OS'], 'Windows_NT')
     continueOnError: true
 
   # Login is needed if you are pulling Bicep files from an Azure Container Registry
@@ -121,7 +125,15 @@ jobs:
       templateLocation: 'Linked artifact'
       deploymentMode: 'Incremental'
 
-  - bash: |
-      echo "WIPED!" > $(parameterFile)
-    displayName: 'Wipe Parameter File'
+  # - bash: |
+  #     echo "WIPED!" > $(parameterFile)
+  #   displayName: 'Wipe Parameters (Linux)'
+  #   condition: and(always(), eq(variables['AGENT.OS'], 'Linux'))
+  - task: CmdLine@2
+    inputs:
+      script: |
+        echo "WIPED!" > $(parameterFile)
+    displayName: 'Wipe Parameters (Windows)'
     condition: always()
+    #condition: and(always(), eq(variables['AGENT.OS'], 'Windows_NT'))
+    continueOnError: true
