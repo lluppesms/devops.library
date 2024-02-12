@@ -1,0 +1,32 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline Template to deploy Azure Resources Only
+# ------------------------------------------------------------------------------------------------------------------------
+parameters:
+- name: environments
+  type: object
+  default: ['DEMO']
+- name: runGHASScan
+  default: 'false'
+- name: runMSDevSecOpsScan
+  default: 'false'
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- ${{ if or(eq(lower(parameters.runMSDevSecOpsScan), 'true'), eq(lower(parameters.runGHASScan), 'true')) }}:
+  - stage: ScanApplication
+    displayName: Scan Application
+    jobs:
+    - template: templates/scan-code-template.yml
+      parameters:
+        environmentName: 'DEMO'
+        runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
+        runGHASScan: ${{ parameters.runGHASScan }}
+
+# ----------------------------------------------------------------------------------------------------
+- ${{ each environmentName in parameters.environments }} :
+  - stage: CreateInfra${{ environmentName }}
+    displayName: Create ${{ environmentName }} Resources
+    jobs:
+    - template: templates/create-infra-template.yml
+      parameters:
+        environmentName: ${{ environmentName }}

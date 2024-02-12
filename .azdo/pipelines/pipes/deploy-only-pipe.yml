@@ -1,0 +1,20 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline Template to deploy Application from an existing artifact
+# ------------------------------------------------------------------------------------------------------------------------
+parameters:
+- name: environments
+  type: object
+  default: ['DEV']
+- name: pipelineResourceIdentifier
+  default: '' # internal identifier for the resource
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- ${{ each environmentName in parameters.environments }} :
+  - stage: DeployApp${{ environmentName }}
+    displayName: Deploy ${{ environmentName }} App
+    jobs:
+    - template: templates/deploy-function-template.yml
+      parameters:
+        environmentName: ${{ environmentName }}
+        pipelineResourceIdentifier: ${{ parameters.pipelineResourceIdentifier }}

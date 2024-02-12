@@ -1,0 +1,63 @@
+# ----------------------------------------------------------------------------------------------------
+# Pipeline to deploy a Function App
+# See readme file for more info about variable group "DurableDemo"
+# ----------------------------------------------------------------------------------------------------
+name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
+pool:
+  vmImage: ubuntu-latest
+variables:
+  - group: DurableDemo
+
+# ----------------------------------------------------------------------------------------------------
+trigger:
+  - none
+
+# ----------------------------------------------------------------------------------------------------
+# Bring in the library of templates
+# ----------------------------------------------------------------------------------------------------
+resources:
+  repositories:
+      - repository: template.library
+        type: git
+        name: Agile Project/template.library
+        ref: master
+
+# ----------------------------------------------------------------------------------------------------
+parameters:
+  - name: runGHASScan
+    displayName: Run GHAS Scan
+    type: boolean
+    default: false
+  - name: runMSDevSecOpsScan
+    displayName: Run MS DevSecOps Scan
+    type: boolean
+    default: false
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- ${{ if or(eq(lower(parameters.runMSDevSecOpsScan), 'true'), eq(lower(parameters.runGHASScan), 'true')) }}:
+  - stage: ScanApplication
+    displayName: Scan Application
+    jobs:
+    - template: pipes/templates/scan-code-template.yml@template.library
+      parameters:
+        environmentName: 'DEMO'
+        runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
+        runGHASScan: ${{ parameters.runGHASScan }}
+
+  - stage: BuildApplication
+    displayName: Build Application
+    dependsOn: ScanApplication
+    jobs:
+    - template: pipes/templates/build-function-template.yml@template.library
+      parameters:
+        environmentName: 'DEV'
+
+# ----------------------------------------------------------------------------------------------------
+- ${{ if and(eq(lower(parameters.runMSDevSecOpsScan), 'false'), eq(lower(parameters.runGHASScan), 'false')) }}:
+  - stage: BuildApplication
+    displayName: Build Application
+    jobs:
+    - template: pipes/templates/build-function-template.yml@template.library
+      parameters:
+        environmentName: 'DEV'

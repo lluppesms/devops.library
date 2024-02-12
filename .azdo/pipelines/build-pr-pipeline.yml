@@ -1,0 +1,36 @@
+# ----------------------------------------------------------------------------------------------------
+# Pipeline to scan/build an app upon Pull Request
+# See readme file for more info about variable group "DurableDemo"
+# ----------------------------------------------------------------------------------------------------
+name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
+pool:
+  vmImage: ubuntu-latest
+variables:
+  - group: DurableDemo
+
+# ----------------------------------------------------------------------------------------------------
+# FYI - Set a required branch policy to run this on every check to main 
+# ----------------------------------------------------------------------------------------------------
+# trigger:
+#   - none
+pr:
+- main
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- stage: ScanApplication
+  displayName: Scan Application
+  jobs:
+  - template: pipes/templates/scan-code-template.yml
+    parameters:
+      environmentName: 'DEV'
+      runMSDevSecOpsScan: false
+      runGHASScan: true
+
+- stage: BuildApplication
+  displayName: Build Application
+  dependsOn: ScanApplication
+  jobs:
+  - template: pipes/templates/build-function-template.yml
+    parameters:
+      environmentName: 'DEV'

@@ -1,0 +1,233 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline to build Test Utility; compiles for both Windows (x64) and Linux; copies EXE to storage for downloading ease
+# ------------------------------------------------------------------------------------------------------------------------
+# Note 1: In order to sign the code, this job needs the VariableGroup "CodeSigning" to work 
+#   The "CodeSigning" Variable Group should have these values:
+#     SubscriptionName: <ServiceConnectionName -> SubscriptionName -> for AzFileCopy>
+#     KeyVaultUrl: https://<yourCertVaultName>.vault.azure.net/
+#     CertName: <Signing Cert Name>
+#     SigningAppRegAppId: <App Id that can read the vault>
+#     SigningAppRegClientSecret: <secret>
+#     ActiveDirectoryTenantId: <AD Tenant for the App Id>
+#     TimestampUrl: http://timestamp.digicert.com
+# ------------------------------------------------------------------------------------------------------------------------
+# Note 2: To add variable group to Pipeline: go to Edit -> Edit Triggers to open detail editor -> add via Variables tab
+# ------------------------------------------------------------------------------------------------------------------------
+# Note 3: In order for AzFileCopy to work, you need to find the account that runs this pipeline, then add account
+#   to the storage account role "Storage Blob Data Owner"
+# ------------------------------------------------------------------------------------------------------------------------
+# Note 4: To create this variable group, open a Cloud shell and run these commands:
+#   az login
+#   az devops configure --defaults organization=https://dev.azure.com/yourorg/
+#   az devops configure --defaults project='yourProjectName'
+#   az pipelines variable-group create --name CodeSigning --variables SubscriptionName=<serviceConnectionName> KeyVaultUrl=https://<yourCertVaultName>.vault.azure.net/ CertName=<certName> SigningAppRegAppId=<appId> SigningAppRegClientSecret=<clientSecret> ActiveDirectoryTenantId=<tenantId> TimestampUrl=: http://timestamp.digicert.com
+# ------------------------------------------------------------------------------------------------------------------------
+parameters:
+- name: environmentName
+  default:  'DEV'
+
+# ------------------------------------------------------------------------------------------------------------------------
+jobs:
+  - job: BuildApp
+    displayName: 'Build App'
+    variables:
+      - group: CodeSigning
+      # Bring in environment common variable file
+      - template: ../../vars/var-common.yml
+      - template: ../../vars/var-source-location-console.yml
+      # Bring in environment specific variable files
+      - ${{ if eq(lower(parameters.environmentName), 'demo') }}:
+        - template: ../../vars/var-demo.yml
+      - ${{ if eq(lower(parameters.environmentName), 'dev') }}:
+        - template: ../../vars/var-dev.yml
+      - ${{ if eq(lower(parameters.environmentName), 'qa') }}:
+        - template: ../../vars/var-qa.yml
+      - ${{ if eq(lower(parameters.environmentName), 'prod') }}:
+        - template: ../../vars/var-prod.yml
+      - name: environmentName
+        value: ${{ parameters.environmentName }}
+      - name: solutionPath
+        value: '$(System.DefaultWorkingDirectory)\$(appFolderName)' # \$(appProjectFolderName)'
+      - name: solutionPathName
+        value: '$(System.DefaultWorkingDirectory)\$(appFolderName)\$(appSolutionName)' #\$(appProjectFolderName)\$(appSolutionName)'
+      - name: projectPath
+        value: '$(System.DefaultWorkingDirectory)\$(appFolderName)' # \$(appProjectFolderName)'
+      - name: projectPathName
+        value: '$(System.DefaultWorkingDirectory)\$(appFolderName)\$(appProjectName)' #\$(appProjectFolderName)\$(appProjectName)'
+
+    steps:
+    - task: CmdLine@2
+      displayName: 'Display Variables and Tree'
+      inputs:
+        script: |
+          echo "environmentName=${{ parameters.environmentName }}"
+
+          echo "appFolderName=$(appFolderName)"
+          echo "appProjectFolderName=$(appProjectFolderName)"
+          echo "appSolutionName=$(appSolutionName)"
+          echo "appProjectName=$(appProjectName)"
+          echo "appProjectExtension=$(appProjectExtension)"
+          echo "exeName=$(exeName)"
+          echo "buildPlatform=$(buildPlatform)"
+          echo "buildConfiguration=$(buildConfiguration)"
+
+          echo "solutionPath=$(solutionPath)"
+          echo "solutionPathName=$(solutionPathName)"
+          echo "projectPathName=$(projectPathName)"
+
+          echo "----------------------------------------"
+          echo "##[group]Display All Environment Variables:"
+          printenv | sort
+          echo "##[endgroup]"
+          echo "----------------------------------------"
+          echo "##[group]Directory of solutionPath: $(solutionPath)"
+          dir "$(solutionPath)" /s
+          echo "##[endgroup]"
+          echo "----------------------------------------"
+          echo "##[group]Directory Listing for $(System.DefaultWorkingDirectory)"
+          dir "$(System.DefaultWorkingDirectory)" /s
+          echo "##[endgroup]"
+      continueOnError: true
+
+    - task: NuGetToolInstaller@1
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Install AzureSignTool'
+      inputs:
+        command: custom
+        custom: tool
+        arguments: 'install --global azuresigntool'
+      continueOnError: true
+  
+    - task: NuGetCommand@2
+      displayName: 'NuGet Restore'
+      inputs:
+        restoreSolution: $(solutionPathName).sln
+
+    - task: UseDotNet@2
+      displayName: 'Use dotnet 6.0'
+      inputs:
+        version: 6.0.x
+
+    - task: VSBuild@1
+      displayName: 'Build Program'
+      inputs:
+        solution: $(solutionPathName).sln
+        platform: $(buildPlatform)
+        configuration: $(buildConfiguration)
+
+    #- task: VSTest@2
+    #  displayName: 'Test Program'
+    #  inputs:
+    #    platform: '$(buildPlatform)'
+    #    configuration: '$(buildConfiguration)'
+    #  continueOnError: true
+
+    - task: DotNetCoreCLI@2
+      displayName: Create win-x64 package
+      inputs:
+        command: publish
+        projects: $(projectPathName).$(appProjectExtension)
+        packDirectory: 
+        publishWebProjects: false
+        arguments: '--configuration $(BuildConfiguration) /p:PublishSingleFile=true --self-contained -f net6.0 -r win-x64 --output $(build.artifactstagingdirectory)\packages'
+        zipAfterPublish: false
+
+    - task: CmdLine@2
+      displayName: 'Display files after build'
+      inputs:
+        script: |
+          echo "----------------------------------------"
+          echo "##[group]Directory of solutionPath: $(solutionPath)"
+          dir "$(solutionPath)" /s
+          echo "##[endgroup]"
+          echo "----------------------------------------"
+          echo "##[group]Directory of build.artifactstagingdirectory: $(build.artifactstagingdirectory)"
+          dir "$(build.artifactstagingdirectory)" /s
+          echo "##[endgroup]"
+      continueOnError: true
+
+    - task: PowerShell@2
+      displayName: 'Sign win-x64 application'
+      inputs:
+        targetType: 'inline'
+        script: |
+          cd $(build.artifactstagingdirectory)\packages
+          azuresigntool sign $(appProjectName)\$(exeName).exe -kvu $(KeyVaultUrl) -kvi $(SigningAppRegAppId) -kvs $(SigningAppRegClientSecret) -kvt $(ActiveDirectoryTenantId) -kvc $(CertName) -tr $(TimestampUrl) -v
+      continueOnError: true
+#     azuresigntool sign $(appProjectFolderName)\$(exeName).exe -kvu $(KeyVaultUrl) -kvi $(SigningAppRegAppId) -kvs $(SigningAppRegClientSecret) -kvt $(ActiveDirectoryTenantId) -kvc $(CertName) -tr $(TimestampUrl) -v
+
+    - task: PowerShell@2
+      displayName: Move win-x64 package to Deploy Folder
+      inputs:
+        targetType: 'inline'
+        script: |
+          cd $(build.artifactstagingdirectory)\packages
+          md Deploy
+          cd Deploy
+          md win-x64
+          cd ..
+          move $(appProjectName)\$(exeName).exe $(build.artifactstagingdirectory)\packages\Deploy\win-x64\
+          move $(appProjectName)\$(exeName).pdb $(build.artifactstagingdirectory)\packages\Deploy\win-x64\
+          move $(appProjectName)\config.json $(build.artifactstagingdirectory)\packages\Deploy\win-x64\
+        errorActionPreference: 'continue'
+        failOnStderr: false
+          # move $(appProjectFolderName)\$(exeName).exe $(build.artifactstagingdirectory)\packages\Deploy\win-x64\
+          # move $(appProjectFolderName)\$(exeName).pdb $(build.artifactstagingdirectory)\packages\Deploy\win-x64\
+          # move $(appProjectFolderName)\config.json $(build.artifactstagingdirectory)\packages\Deploy\win-x64\
+
+    - task: CmdLine@2
+      displayName: 'Display files after move'
+      inputs:
+        script: |
+          echo "----------------------------------------"
+          echo "##[group]Directory of solutionPath: $(solutionPath)"
+          dir "$(solutionPath)" /s
+          echo "##[endgroup]"
+          echo "----------------------------------------"
+          echo "##[group]Directory of build.artifactstagingdirectory: $(build.artifactstagingdirectory)"
+          dir "$(build.artifactstagingdirectory)" /s
+          echo "##[endgroup]"
+      continueOnError: true
+
+    - task: DotNetCoreCLI@2
+      displayName: Create Linux package
+      inputs:
+        command: publish
+        projects: $(projectPathName).$(appProjectExtension)
+        publishWebProjects: false
+        arguments: '--configuration $(BuildConfiguration) /p:PublishSingleFile=true --self-contained -f net6.0 -r linux-x64 --output $(build.artifactstagingdirectory)\packages'
+        zipAfterPublish: false
+
+    - task: PowerShell@2
+      displayName: Move Linux package to Deploy Folder
+      inputs:
+        targetType: 'inline'
+        script: |
+          cd $(build.artifactstagingdirectory)\packages
+          cd Deploy
+          md Linux
+          cd ..
+          move $(appProjectName)\$(exeName) $(build.artifactstagingdirectory)\packages\Deploy\Linux\
+        errorActionPreference: 'continue'
+        failOnStderr: false
+       #   move $(appProjectFolderName)\$(exeName) $(build.artifactstagingdirectory)\packages\Deploy\Linux\
+
+    - task: CmdLine@2
+      displayName: 'Display files before publish'
+      inputs:
+        script: |
+          echo "----------------------------------------"
+          echo "##[group]Directory of solutionPath: $(solutionPath)"
+          dir "$(solutionPath)" /s
+          echo "##[endgroup]"
+          echo "----------------------------------------"
+          echo "##[group]Directory of build.artifactstagingdirectory: $(build.artifactstagingdirectory)"
+          dir "$(build.artifactstagingdirectory)" /s
+          echo "##[endgroup]"
+      continueOnError: true
+
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Deployed Artifacts'
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)\packages\Deploy'

@@ -1,0 +1,43 @@
+# ------------------------------------------------------------------------------------------------------------------------
+# Pipeline to build IoT Simulator; compiles for both Windows (x64) and Linux; copies EXE to storage for downloading ease
+# See readme file for info about variable group "DurableDemo"
+# ------------------------------------------------------------------------------------------------------------------------
+name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
+pool:
+  vmImage: windows-latest
+variables:
+  - group: DurableDemo
+
+# ----------------------------------------------------------------------------------------------------
+trigger:
+  # - none
+  batch: true
+  branches:
+    include: 
+      - main
+  paths:
+    include:
+      - src/Durable.Tester
+    exclude: 
+      - '**/*.yml'
+      - '**/*.yaml'
+      - '**/*.bicep'
+
+# ----------------------------------------------------------------------------------------------------
+parameters:
+  - name: runGHASScan
+    displayName: Run GHAS Scan
+    type: boolean
+    default: false
+  - name: runMSDevSecOpsScan
+    displayName: Run MS DevSecOps Scan
+    type: boolean
+    default: false
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- template: pipes/console-app-pipe.yml
+  parameters:
+    environments: ['DEV']
+    runMSDevSecOpsScan: ${{ parameters.runMSDevSecOpsScan }}
+    runGHASScan: ${{ parameters.runGHASScan }}

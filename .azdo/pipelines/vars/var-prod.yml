@@ -1,0 +1,9 @@
+# ----------------------------------------------------------------------------------------------------
+# Variables specific to the PROD environment
+# ----------------------------------------------------------------------------------------------------
+# You could put other environment-specific variables here as needed, or move things out of the
+# common file if you want to make them different for each environment, like the SKU or location.
+# ----------------------------------------------------------------------------------------------------
+variables:
+  - name: environmentSpecificFunctionName
+    value: ''

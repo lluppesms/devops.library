@@ -1,0 +1,54 @@
+# ----------------------------------------------------------------------------------------------------
+# Pipeline to deploy a Function App from an existing artifact
+# See readme file for info about the contents of the variable group
+# ----------------------------------------------------------------------------------------------------
+# NOTE: This pipeline assumes that the artifact has already been created by a previous pipeline
+# ----------------------------------------------------------------------------------------------------
+# WARNING: You will probably want to put some more gates in here around a PROD deploy!!!
+#          This sample will let you deploy whatever you choose to any environment...
+#          The environment approval process should filter that some, but you may want more
+#          like a check to see if the build came from the "Release" branch or something like that.
+# ----------------------------------------------------------------------------------------------------
+name: $(date:yyyy).$(date:MM).$(date:dd)$(rev:.r)
+pool:
+  vmImage: ubuntu-latest
+variables:
+  - group: DurableDemo
+
+# ----------------------------------------------------------------------------------------------------
+trigger:
+  - none
+
+# ----------------------------------------------------------------------------------------------------
+resources:
+  pipelines:
+  - pipeline: durable.function.only # internal identifier for the resource
+    source: durable.function.only   # name of the pipeline that produces an artifact
+    branch: main                    # should only allow builds from the main branch to be used
+
+# ----------------------------------------------------------------------------------------------------
+parameters:
+  - name: deployToEnvironment
+    displayName: Deploy To
+    type: string
+    values:
+      - DEMO
+      - DEV
+      - QA
+      - PROD
+      - MULTIPLE
+    default: DEV
+
+# ----------------------------------------------------------------------------------------------------
+stages:
+- ${{ if ne(parameters.deployToEnvironment, 'MULTIPLE') }}:
+  - template: pipes/deploy-only-pipe.yml
+    parameters:
+      environments: [ '${{ parameters.deployToEnvironment }}' ]
+      pipelineResourceIdentifier: 'durable.function.only'
+
+- ${{ if eq(parameters.deployToEnvironment, 'MULTIPLE') }}:
+  - template: pipes/deploy-only-pipe.yml
+    parameters:
+      environments: ['DEV','PROD']
+      pipelineResourceIdentifier: 'durable.function.only'

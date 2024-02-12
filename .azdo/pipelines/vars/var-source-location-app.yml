@@ -1,0 +1,22 @@
+# ----------------------------------------------------------------------------------------------------
+# Variables for location of source for function app
+# ----------------------------------------------------------------------------------------------------
+variables:
+  - name: sourceVariableFile
+    value: 'app'
+  - name: appFolderName
+    value: 'src/Durable.Demo'
+  - name: appSolutionName
+    value: 'Durable.Demo'
+  - name: appProjectName
+    value: 'Durable.Tester'
+  - name: appProjectFolderName
+    value: 'src/Durable.Demo'
+  - name: exeName
+    value: 'Durable.Tester'
+  - name: appProjectExtension
+    value: 'csproj'
+  - name: buildPlatform
+    value: 'Any CPU'
+  - name: buildConfiguration
+    value: 'Release'

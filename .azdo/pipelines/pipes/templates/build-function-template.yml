@@ -1,0 +1,72 @@
+# ----------------------------------------------------------------------------------------------------
+# Template to build Azure Function and create artifacts
+# ----------------------------------------------------------------------------------------------------
+parameters: 
+- name: environmentName
+  default:  'DEV'
+
+# ----------------------------------------------------------------------------------------------------
+jobs:
+- deployment: InitializeBuild${{ parameters.environmentName }}Function
+  displayName: Initialize ${{ parameters.environmentName }} Build Function
+  environment: ${{ parameters.environmentName }}
+
+- job: Build${{ parameters.environmentName }}Function
+  displayName: Build ${{ parameters.environmentName }} Function
+  
+  variables:
+    - name: environmentName
+      value: ${{ parameters.environmentName }}
+    # Bring in environment common variable file
+    - template: ../../vars/var-common.yml
+    - template: ../../vars/var-source-location-app.yml
+    # Bring in environment specific variable files
+    - ${{ if eq(lower(parameters.environmentName), 'demo') }}:
+      - template: ../../vars/var-demo.yml
+    - ${{ if eq(lower(parameters.environmentName), 'dev') }}:
+      - template: ../../vars/var-dev.yml
+    - ${{ if eq(lower(parameters.environmentName), 'qa') }}:
+      - template: ../../vars/var-qa.yml
+    - ${{ if eq(lower(parameters.environmentName), 'prod') }}:
+      - template: ../../vars/var-prod.yml
+
+  steps:
+  - task: Bash@3
+    displayName: 'Display Variables'
+    continueOnError: true
+    inputs:
+      targetType: 'inline'
+      script: |
+        echo "Build.ArtifactStagingDirectory=$(Build.ArtifactStagingDirectory)"
+        echo "System.DefaultWorkingDirectory=$(System.DefaultWorkingDirectory)"
+        echo "Build.BuildId=$(Build.BuildId)"
+        echo "----------------------------------------"
+        echo "##[group]Display All Environment Variables:"
+        printenv | sort
+        echo "##[endgroup]"
+        echo "----------------------------------------"
+        echo "##[group]Directory of pipeline workspace:"
+        tree -L 4 $(Pipeline.Workspace)
+        echo "##[endgroup]"
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build project'
+    inputs:
+      projects: '$(appFolderName)/*.csproj'
+      arguments: '--output publish_output --configuration Release'
+
+  - task: ArchiveFiles@2
+    displayName: 'Zip Output'
+    inputs:
+      rootFolderOrFile: '$(System.DefaultWorkingDirectory)/publish_output'
+      includeRootFolder: false
+      archiveType: zip
+      archiveFile: $(Build.ArtifactStagingDirectory)/$(appName)-$(Build.BuildId).zip
+      replaceExistingArchive: true
+
+  - task: PublishPipelineArtifact@1
+    displayName: 'Publish Artifact'
+    inputs:
+      targetPath: '$(Build.ArtifactStagingDirectory)'
+      artifact: drop
+      publishLocation: 'pipeline'

@@ -1,0 +1,43 @@
+# ----------------------------------------------------------------------------------------------------
+# Variables common to all environments
+# ----------------------------------------------------------------------------------------------------
+variables:
+  # - name: appName
+  #   value: 'this is unique to you - define in a variable group or on the pipeline variables!'
+  # - name: serviceConnectionName
+  #   value: 'this is unique to you - define in a variable group or on the pipeline variables!'
+  # - name: azureSubscription
+  #   value: '<yourAzureSubscriptionName>' 'this is unique to you - define in a variable group or on the pipeline variables!'
+  # - name: subscriptionId
+  #   value: '<yourSubscriptionId>' 'this is unique to you - define in a variable group or on the pipeline variables!'
+  # - name: keyVaultOwnerUserId
+  #   value: 'this is unique to you - define in a variable group or on the pipeline variables!'
+  # - name: twilioAccountSid
+  #   value: 'this is unique to you - define in a variable group or on the pipeline variables!'
+  # - name: twilioAuthToken
+  #   value: 'this is unique to you - define in a variable group or on the pipeline variables!'
+  # - name: twilioPhoneNumber
+  #   value: 'this is unique to you - define in a variable group or on the pipeline variables!'
+
+  - name: resourceGroupPrefix
+    value: 'rg_durable_func'
+  - name: applicationTitle
+    value: 'Net6 Durable Functions Demo'
+  - name: location
+    value: 'eastus'
+
+  - name: functionAppSku
+    value: 'Y1'
+  - name: functionAppSkuFamily
+    value: 'Y'
+  - name: functionAppSkuTier
+    value: 'Dynamic'
+  - name: functionKind
+    value: 'functionapp,linux'
+  - name: storageSku 
+    value: 'Standard_LRS'
+
+  - name: workingDirectoryInfra
+    value: '/infra/bicep'
+  - name: workingDirectoryIgnore
+    value: '/Docs'
